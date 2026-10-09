@@ -1,0 +1,1246 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>ハンバーガータワー2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* ポップなバーガーショップ：ステッカー風カード（太い茶色のふち＋ずらし影）。単一テーマ */
+:root{
+  --ink:#3B2216;      /* こげ茶：文字・ふち */
+  --cream:#FFF4DF;    /* カード */
+  --ketchup:#E5432D;  /* 強調・危険 */
+  --mustard:#F6B92B;  /* 主ボタン */
+  --lettuce:#4FAE3C;  /* 成功 */
+  --wall:#7FCFC4;     /* かべ */
+  --font:'BIZ UDPGothic','Hiragino Kaku Gothic ProN','Hiragino Sans',sans-serif;
+  color-scheme:light;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+[hidden]{display:none!important;}
+html,body{width:100%;height:100%;overflow:hidden;position:fixed;inset:0;
+  touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
+  -webkit-text-size-adjust:100%;overscroll-behavior:none;
+  font-family:var(--font);background:var(--wall);color:var(--ink);}
+#cv{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;}
+rt{font-size:.5em;font-weight:400;}
+button{font-family:var(--font);color:var(--ink);cursor:pointer;touch-action:manipulation;}
+button:focus-visible{outline:3px solid var(--ketchup);outline-offset:2px;}
+
+/* ---------- HUD ---------- */
+#hud{position:fixed;inset:0;pointer-events:none;}
+.card{background:var(--cream);border:3px solid var(--ink);border-radius:14px;box-shadow:0 4px 0 var(--ink);}
+#stat{position:absolute;left:calc(env(safe-area-inset-left,0px) + 12px);top:calc(env(safe-area-inset-top,0px) + 12px);
+  padding:8px 14px 10px;display:flex;gap:16px;align-items:flex-end;}
+.lbl{font-size:12px;font-weight:700;letter-spacing:.08em;opacity:.7;line-height:1.3;}
+.val{font-size:28px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;}
+.val small{font-size:14px;margin-left:2px;}
+#hearts{font-size:22px;line-height:1;letter-spacing:2px;color:var(--ketchup);}
+#hearts .off{color:#CDB9A4;}
+#right{position:absolute;right:calc(env(safe-area-inset-right,0px) + 12px);top:calc(env(safe-area-inset-top,0px) + 12px);
+  display:flex;gap:10px;align-items:flex-start;}
+#next{padding:6px 10px 8px;min-width:92px;text-align:center;}
+#nextList{display:flex;flex-direction:column;align-items:center;gap:2px;margin-top:2px;}
+#nextList .nx{display:flex;flex-direction:column;align-items:center;font-size:12px;font-weight:700;line-height:1.1;}
+#nextList .nx + .nx{opacity:.55;transform:scale(.85);}
+#helpBtn{pointer-events:auto;width:52px;height:52px;border-radius:50%;font-size:28px;font-weight:700;background:var(--mustard);}
+#ver{position:absolute;left:calc(env(safe-area-inset-left,0px) + 8px);bottom:calc(env(safe-area-inset-bottom,0px) + 4px);
+  font-size:11px;opacity:.55;font-variant-numeric:tabular-nums;}
+
+/* ボタン操作 */
+.pad{position:absolute;bottom:calc(env(safe-area-inset-bottom,0px) + 20px);pointer-events:auto;
+  width:76px;height:76px;border-radius:20px;font-size:34px;font-weight:700;background:var(--cream);
+  border:3px solid var(--ink);box-shadow:0 5px 0 var(--ink);display:flex;align-items:center;justify-content:center;touch-action:none;}
+.pad.on{transform:translateY(4px);box-shadow:0 1px 0 var(--ink);background:var(--mustard);}
+#bL{left:calc(env(safe-area-inset-left,0px) + 18px);}
+#bR{right:calc(env(safe-area-inset-right,0px) + 18px);}
+#dpad{position:absolute;right:calc(env(safe-area-inset-right,0px) + 14px);bottom:calc(env(safe-area-inset-bottom,0px) + 14px);
+  width:216px;height:216px;}
+#dpad .pad{position:absolute;width:68px;height:68px;font-size:28px;bottom:auto;}
+#dU{left:74px;top:0;} #dD{left:74px;top:144px;} #dL{left:2px;top:72px;} #dR{left:146px;top:72px;}
+
+/* メッセージ */
+#msg{position:absolute;left:50%;top:34%;transform:translate(-50%,-50%);font-size:44px;font-weight:700;white-space:nowrap;
+  color:var(--cream);-webkit-text-stroke:2px var(--ink);paint-order:stroke fill;text-shadow:0 4px 0 var(--ink);opacity:0;}
+#msg.show{animation:pop .9s ease-out forwards;}
+@keyframes pop{0%{opacity:0;transform:translate(-50%,-50%) scale(.5)}15%{opacity:1;transform:translate(-50%,-50%) scale(1.12)}
+  30%{transform:translate(-50%,-50%) scale(1)}75%{opacity:1}100%{opacity:0;transform:translate(-50%,-70%) scale(1)}}
+.float{position:absolute;font-size:22px;font-weight:700;color:var(--cream);-webkit-text-stroke:1.5px var(--ink);paint-order:stroke fill;
+  white-space:nowrap;transform:translate(-50%,-50%);animation:rise 1s ease-out forwards;}
+@keyframes rise{0%{opacity:0;transform:translate(-50%,-20%)}15%{opacity:1}100%{opacity:0;transform:translate(-50%,-180%)}}
+#keep{position:absolute;left:50%;top:18%;transform:translateX(-50%);padding:10px 18px 12px;text-align:center;}
+#keep b{font-size:26px;display:block;margin-bottom:6px;}
+#keepBar{width:220px;max-width:60vw;height:16px;border:3px solid var(--ink);border-radius:10px;overflow:hidden;background:#fff;}
+#keepFill{height:100%;width:0;background:var(--lettuce);}
+.confetti{position:absolute;top:-20px;width:12px;height:16px;border-radius:3px;animation:fall linear forwards;}
+@keyframes fall{to{transform:translateY(110vh) rotate(720deg);}}
+
+/* ---------- 説明・結果 ---------- */
+.overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+  background:rgba(59,34,22,.45);padding:calc(env(safe-area-inset-top,0px) + 12px) 16px calc(env(safe-area-inset-bottom,0px) + 12px);}
+.panel{width:min(780px,100%);max-height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 20px 18px;
+  display:flex;flex-direction:column;gap:10px;}
+.panel h1{font-size:30px;line-height:1.2;text-align:center;text-wrap:balance;color:var(--ketchup);
+  -webkit-text-stroke:1.5px var(--ink);paint-order:stroke fill;}
+.panel h2{font-size:16px;line-height:1.4;}
+.how{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:14px;align-items:center;}
+#howFig > svg{width:100%;height:auto;display:block;max-height:34vh;}
+.rules{list-style:none;display:flex;flex-direction:column;gap:4px;font-size:16px;line-height:1.65;}
+.rules li{display:flex;gap:8px;align-items:flex-start;}
+.rules .no{flex:none;width:28px;height:28px;margin-top:4px;border-radius:50%;background:var(--mustard);border:2px solid var(--ink);
+  display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;}
+.items{display:flex;flex-wrap:wrap;gap:6px 10px;justify-content:center;font-size:12px;font-weight:700;}
+.items span{display:flex;flex-direction:column;align-items:center;}
+.choose{display:flex;flex-direction:column;gap:10px;}
+.row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;}
+.row2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
+.opt{min-height:58px;border:3px solid var(--ink);border-radius:14px;background:#fff;box-shadow:0 4px 0 var(--ink);
+  font-size:19px;font-weight:700;line-height:1.25;padding:6px 4px;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.opt small{font-size:12px;font-weight:400;margin-top:2px;}
+.opt[aria-pressed="true"]{background:var(--mustard);transform:translateY(3px);box-shadow:0 1px 0 var(--ink);}
+.go{min-height:60px;border:3px solid var(--ink);border-radius:18px;background:var(--ketchup);color:#fff;box-shadow:0 5px 0 var(--ink);
+  font-size:26px;font-weight:700;letter-spacing:.1em;}
+.go:active,.opt:active,.sub:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink);}
+.sub{min-height:52px;border:3px solid var(--ink);border-radius:14px;background:#fff;box-shadow:0 4px 0 var(--ink);font-size:18px;font-weight:700;}
+.btns{display:flex;flex-direction:column;gap:10px;}
+#result .panel{width:min(460px,100%);text-align:center;}
+#rTitle{font-size:40px;}
+#rStack{display:flex;flex-direction:column-reverse;align-items:center;margin:4px auto 0;}
+#rStack svg{margin-top:-14px;}
+.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
+.stats div{background:#fff;border:2px solid var(--ink);border-radius:12px;padding:8px;}
+.stats b{display:block;font-size:26px;font-variant-numeric:tabular-nums;}
+@media (max-width:620px){
+  .how{grid-template-columns:1fr;}
+  .row{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .panel h1{font-size:28px;}
+  #stat{gap:10px;padding:6px 10px 8px;} .val{font-size:22px;}
+}
+@media (prefers-reduced-motion:reduce){
+  #msg.show,.float,.confetti{animation-duration:.01s;}
+}
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/",
+    "cannon-es": "https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cannon-es.js"
+  }
+}
+</script>
+</head>
+<body>
+<!-- build: 2026-10-09 -->
+<canvas id="cv"></canvas>
+
+<div id="hud">
+  <div id="stat" class="card">
+    <div><div class="lbl">とくてん</div><div class="val" id="score">0</div></div>
+    <div><div class="lbl">たかさ</div><div class="val"><span id="height">0</span><small>cm</small></div></div>
+    <div><div class="lbl" id="countLbl">つんだ かず</div><div class="val"><span id="count">0</span><small id="goal">/10こ</small></div></div>
+    <div><div class="lbl">ライフ</div><div id="hearts"></div></div>
+  </div>
+  <div id="right">
+    <div id="next" class="card"><div class="lbl">つぎ</div><div id="nextList"></div></div>
+    <button id="helpBtn" class="card" aria-label="あそびかたを見る">？</button>
+  </div>
+  <button class="pad" id="bL" aria-label="ひだりへ">◀</button>
+  <button class="pad" id="bR" aria-label="みぎへ">▶</button>
+  <div id="dpad" hidden>
+    <button class="pad" id="dU" aria-label="おくへ">▲</button>
+    <button class="pad" id="dL" aria-label="ひだりへ">◀</button>
+    <button class="pad" id="dR" aria-label="みぎへ">▶</button>
+    <button class="pad" id="dD" aria-label="てまえへ">▼</button>
+  </div>
+  <div id="keep" class="card" hidden><b>キープ！</b><div id="keepBar"><div id="keepFill"></div></div></div>
+  <div id="msg"></div>
+  <div id="fx"></div>
+  <div id="ver"></div>
+</div>
+
+<!-- あそびかた（はじめる前／ゲーム中の「？」） -->
+<div id="help" class="overlay">
+  <div class="panel card">
+    <h1>ハンバーガータワー2</h1>
+    <div class="how">
+      <div id="howFig"></div>
+      <ul class="rules">
+        <li><span class="no">1</span><span><ruby>指<rt>ゆび</rt></ruby>を <b id="dirWord"><ruby>左右<rt>さゆう</rt></ruby></b>に うごかすと、おさらが うごくよ。◀ ▶ ボタンでも うごかせるよ。</span></li>
+        <li><span class="no">2</span><span><ruby>上<rt>うえ</rt></ruby>から おちてくる <ruby>具材<rt>ぐざい</rt></ruby>を、いちばん<ruby>上<rt>うえ</rt></ruby>で うけとめよう。<b>かげ</b>が <b style="color:var(--lettuce)">みどり</b>なら うけとめられるよ。</span></li>
+        <li><span class="no">3</span><span>まんなかで うけると「ぴったり！」。ずれると タワーが かたむくよ。</span></li>
+        <li><span class="no">4</span><span>いそいで うごかすと タワーが ゆれるよ。<b>くずれたら おわり</b>。</span></li>
+        <li><span class="no">5</span><span><ruby>上<rt>うえ</rt></ruby>のバンズを のせて、2びょう キープしたら かんせい！</span></li>
+      </ul>
+    </div>
+    <div class="items" id="itemList"></div>
+    <div class="choose" id="chooseBox">
+      <h2>むずかしさ</h2>
+      <div class="row" id="modeRow">
+        <button class="opt" data-mode="easy">かんたん<small>6こ・ライフ5</small></button>
+        <button class="opt" data-mode="normal">ふつう<small>10こ・ライフ3</small></button>
+        <button class="opt" data-mode="hard">むずかしい<small>12こ・ゆれる</small></button>
+        <button class="opt" data-mode="endless">エンドレス<small>どこまでも</small></button>
+      </div>
+      <h2>おさらの うごき</h2>
+      <div class="row2" id="axisRow">
+        <button class="opt" data-axis="x"><span><ruby>左右<rt>さゆう</rt></ruby>だけ</span><small>おすすめ</small></button>
+        <button class="opt" data-axis="xz"><span><ruby>左右<rt>さゆう</rt></ruby>＋<ruby>前後<rt>ぜんご</rt></ruby></span><small>むずかしくなる</small></button>
+      </div>
+      <button class="go" id="startBtn">はじめる</button>
+    </div>
+    <div class="btns" id="pauseBox" hidden>
+      <button class="go" id="resumeBtn">つづける</button>
+      <button class="sub" id="toMenuBtn">さいしょの がめんへ</button>
+    </div>
+  </div>
+</div>
+
+<div id="result" class="overlay" hidden>
+  <div class="panel card">
+    <h1 id="rTitle">かんせい！</h1>
+    <div id="rStack"></div>
+    <p id="rSub" style="font-size:17px;line-height:1.7"></p>
+    <div class="stats">
+      <div>とくてん<b id="rScore">0</b></div>
+      <div>たかさ<b id="rHeight">0cm</b></div>
+      <div>つんだ かず<b id="rCount">0こ</b></div>
+      <div>ぴったり<b id="rPerfect">0かい</b></div>
+    </div>
+    <div class="btns">
+      <button class="go" id="againBtn">もういちど</button>
+      <button class="sub" id="menuBtn">むずかしさを えらぶ</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import * as CANNON from 'cannon-es';
+
+// ===== CORE（ゲームの仕組みと物理。シミュレーションとHTMLで共通） =====
+// ぐらつき：つなぎ目ごとの「ばね付き振り子」モデル（自前の物理計算）
+// くずれた後：cannon-es の剛体物理（具材がばらばらに転がる）
+
+// ---- 調整値はすべてここ ----
+const CFG = {
+  gravity: 12,            // 重力（ゲーム用に弱め）
+  physHz: 120,            // 物理の固定ステップ
+  maxSub: 8,
+  plateY: 0,
+  tableY: -0.21,
+  plateRangeX: 3.0,       // 皿が動ける範囲（左右）
+  plateRangeZ: 1.4,       // 皿が動ける範囲（前後）
+  plateMaxSpeed: 6.5,
+  plateAccel: 30,
+  plateFollow: 12,
+  inertiaCouple: 0.18,    // 皿の加速を具材がどれだけ感じるか（1=本物どおり。小さいほど揺れにくいチート）
+  spawnHeight: 3.4,       // 一番上の具材から、どれだけ上に出すか
+  spawnRangeZ: 1.1,
+  minInertia: 0.05,
+  dampZeta: 0.9,          // 揺れのおさまりやすさ
+  impactKick: 0.3,        // 具材がのった時のゆれ
+  breakAngle: 0.40,       // つなぎ目がこれ以上曲がると…
+  absBreakAngle: 1.3,     // 具材そのものがこれ以上傾いても崩れる
+  breakTime: 0.10,        // …この秒数つづいたら崩れる
+  perfectDist: 0.13,      // 「ぴったり！」の判定
+  keepTime: 2.0,          // 上のバンズをのせてから完成までキープする秒数
+  respawnDelay: 0.45,
+  missLife: 1.4,
+  collapseTime: 2.0,
+  scorePer: 10, scorePerfect: 5, scoreClear: 50, scoreLife: 20,
+  cmPerUnit: 7,
+  // 画面・操作
+  buttonSpeed: 4.0,       // ◀▶ボタンを押している間の速さ
+  dragGain: 1.0,          // ゆびの動きと皿の動きの比（1=ゆびと同じだけ動く）
+  fov: 42,
+  version: 'v2026-10-09',
+  modes: {
+    easy:    { goal: 6,  fall: 1.3, catchFrac: 0.85, lives: 5, spawnRange: 2.4, jump: 1.6, jumpMin: 0.3, drift: 0,   stiffS: 4.0, kBase: 30 },
+    normal:  { goal: 10, fall: 1.65, catchFrac: 0.72, lives: 3, spawnRange: 2.6, jump: 2.2, jumpMin: 0.5, drift: 0,   stiffS: 3.2, kBase: 24 },
+    hard:    { goal: 12, fall: 2.15, catchFrac: 0.62, lives: 3, spawnRange: 2.8, jump: 2.8, jumpMin: 0.7, drift: 0.8, stiffS: 3.4, kBase: 22 },
+    endless: { goal: 0,  fall: 1.65, catchFrac: 0.72, lives: 3, spawnRange: 2.6, jump: 2.2, jumpMin: 0.5, drift: 0,   stiffS: 3.2, kBase: 24,
+               speedUp: 0.03, speedMax: 1.8, driftUp: 0.05, driftMax: 1.0 },
+  },
+  // 具材（形 cyl=円柱 / box=四角, 半径 r または w,d, 厚さ h, 重さ m, glue=くっつきやすさ）
+  kinds: {
+    patty:   { shape: 'cyl', r: 0.56, h: 0.22, m: 1.2,  glue: 1.0 },
+    cheese:  { shape: 'box', w: 1.10, d: 1.10, h: 0.05, m: 0.35, glue: 0.6 },
+    lettuce: { shape: 'cyl', r: 0.66, h: 0.10, m: 0.3,  glue: 1.1 },
+    tomato:  { shape: 'cyl', r: 0.46, h: 0.12, m: 0.45, glue: 0.7 },
+    egg:     { shape: 'cyl', r: 0.55, h: 0.09, m: 0.5,  glue: 0.9 },
+    bacon:   { shape: 'box', w: 1.15, d: 0.40, h: 0.06, m: 0.4,  glue: 0.9 },
+    onion:   { shape: 'cyl', r: 0.44, h: 0.08, m: 0.25, glue: 0.8 },
+    topbun:  { shape: 'cyl', r: 0.60, h: 0.38, m: 0.7,  glue: 1.0 },
+  },
+  bag: ['patty', 'cheese', 'lettuce', 'tomato', 'egg', 'bacon', 'onion'],
+  plateKind: { r: 0.60, h: 0.26 },   // 下のバンズ（皿と一体）
+};
+
+const G_GROUND = 1, G_PIECE = 2, G_MISS = 8, G_PLATE = 16;
+
+function radiusOf(k) { return k.shape === 'cyl' ? k.r : Math.min(k.w, k.d) / 2 * 1.15; }
+
+function createGame(rand = Math.random) {
+  const world = new CANNON.World({ gravity: new CANNON.Vec3(0, -CFG.gravity, 0) });
+  world.solver.iterations = 20;
+  world.defaultContactMaterial.friction = 0.5;
+  world.defaultContactMaterial.restitution = 0.1;
+
+  const ground = new CANNON.Body({ mass: 0, shape: new CANNON.Plane(),
+    collisionFilterGroup: G_GROUND, collisionFilterMask: G_PIECE | G_MISS });
+  ground.quaternion.setFromEuler(-Math.PI / 2, 0, 0);
+  ground.position.y = CFG.tableY;
+  world.addBody(ground);
+
+  const P = CFG.plateKind;
+  const plate = new CANNON.Body({ mass: 0, type: CANNON.Body.KINEMATIC,
+    shape: new CANNON.Cylinder(P.r, P.r, P.h, 16),
+    collisionFilterGroup: G_PLATE, collisionFilterMask: G_PIECE });
+  plate.position.set(0, CFG.plateY, 0);
+  world.addBody(plate);
+
+  const g = {
+    CFG, world, plate,
+    // pieces[i]：{ key, kind, pos, quat(傾きのみ), yaw, body }  body はくずれるまで null
+    //   くずれる前は pos/quat を「振り子モデル」で計算して動かしている（.position ではなく joints[].L が本体）
+    pieces: [],
+    // joints[i]：pieces[i] とその下（i=0 は皿）のつなぎ目。L=曲がり(x,z), V=曲がる速さ, off=のった位置のずれ
+    joints: [],
+    falling: null,   // 落下中の具材：物理ボディではなく内部データ x,y,z で動かしている
+    missed: [],      // { key, kind, body, life }
+    state: 'idle',   // idle / play / keep / collapsing / over / clear
+    modeKey: 'normal', mode: CFG.modes.normal, axis: 'x',
+    lives: 0, score: 0, count: 0, perfects: 0, bestHeight: 0,
+    input: { tx: 0, tz: 0 },
+    events: [], t: 0, frames: 0, elapsed: 0,
+    spawnT: 0, keepT: 0, collapseT: 0, acc: 0, bag: [], endReason: '',
+    plateV: { x: 0, z: 0 }, plateA: { x: 0, z: 0 },
+  };
+
+  // ---------- 振り子モデル ----------
+  const _q = new CANNON.Quaternion(), _v = new CANNON.Vec3(), _axis = new CANNON.Vec3();
+  const UPV = new CANNON.Vec3(0, 1, 0);
+  const IDQ = new CANNON.Quaternion(), _pqi = new CANNON.Quaternion(), _d = new CANNON.Vec3(), _up = new CANNON.Vec3();
+  function frameOf(i) {   // i=-1 は皿
+    if (i < 0) return { pos: plate.position, quat: IDQ, h: P.h, r: P.r };
+    const p = g.pieces[i];
+    return { pos: p.pos, quat: p.quat, h: p.kind.h, r: radiusOf(p.kind) };
+  }
+  function leanQuat(L, out) {
+    const a = Math.hypot(L.x, L.z);
+    if (a < 1e-9) { out.set(0, 0, 0, 1); return out; }
+    _axis.set(L.z / a, 0, -L.x / a);       // +x へ傾く = -z 軸まわり、+z へ傾く = +x 軸まわり
+    out.setFromAxisAngle(_axis, a);
+    return out;
+  }
+  // 下から順に、つなぎ目の曲がりから各具材の位置と向きを決める
+  function forwardKinematics() {
+    for (let i = 0; i < g.pieces.length; i++) {
+      const p = g.pieces[i], j = g.joints[i], f = frameOf(i - 1);
+      _v.set(j.off.x, f.h / 2, j.off.z);
+      f.quat.vmult(_v, j.pivot); j.pivot.vadd(f.pos, j.pivot);
+      leanQuat(j.L, _q);
+      f.quat.mult(_q, p.quat);
+      _v.set(0, p.kind.h / 2, 0);
+      p.prevPos.copy(p.pos);
+      p.quat.vmult(_v, p.pos); p.pos.vadd(j.pivot, p.pos);
+    }
+  }
+  function stepJoints(h) {
+    const n = g.pieces.length;
+    const G = CFG.gravity, S = g.mode.stiffS;
+    const ax = g.plateA.x * CFG.inertiaCouple, az = g.plateA.z * CFG.inertiaCouple;
+    for (let j = 0; j < n; j++) {
+      const J = g.joints[j], pv = J.pivot;
+      // つなぎ目ごとに「下の具材から見た向き」で考える（下が傾いても、ここのばねは自分の曲がりだけを支える）
+      const pq = j === 0 ? IDQ : g.pieces[j - 1].quat;
+      pq.conjugate(_pqi);
+      let mdy = 0, mdx = 0, mdz = 0, I = CFG.minInertia;
+      for (let i = j; i < n; i++) {
+        const p = g.pieces[i], m = p.kind.m;
+        _d.set(p.pos.x - pv.x, p.pos.y - pv.y, p.pos.z - pv.z);
+        _pqi.vmult(_d, _d);
+        const dx = _d.x, dy = _d.y, dz = _d.z;
+        mdx += m * dx; mdz += m * dz;
+        if (dy > 0) mdy += m * dy;
+        I += m * (dx * dx + dy * dy + dz * dz) + m * p.kind.h * p.kind.h / 12;
+      }
+      const load = G * mdy;
+      const k = S * load + g.mode.kBase * J.glue;
+      const c = CFG.dampZeta * 2 * Math.sqrt(k * I);
+      J.k = k;
+      // 外からのトルク：重さによる倒れ（重心が外にあるほど）＋皿の加速の反作用
+      const tx = G * mdx - ax * mdy, tz = G * mdz - az * mdy;
+      // ばね・減衰は陰的に解く（どんなに硬くても数値が暴れない）
+      const den = 1 + h * c / I + h * h * k / I;
+      J.V.x = (J.V.x + h * (tx / I - k / I * J.L.x)) / den;
+      J.V.z = (J.V.z + h * (tz / I - k / I * J.L.z)) / den;
+      J.L.x += h * J.V.x; J.L.z += h * J.V.z;
+      J.tilt = Math.hypot(J.L.x, J.L.z);
+      J.I = I;
+    }
+    forwardKinematics();
+  }
+  function checkBreak(h) {
+    for (let j = 0; j < g.joints.length; j++) {
+      const J = g.joints[j];
+      // 具材そのものの傾き（下からの合計）も見る
+      g.pieces[j].quat.vmult(UPV, _up);
+      J.absTilt = Math.acos(Math.max(-1, Math.min(1, _up.y)));
+      if (J.tilt > CFG.breakAngle || J.absTilt > CFG.absBreakAngle) { J.over += h; if (J.over > CFG.breakTime) { collapse(j); return; } }
+      else J.over = 0;
+    }
+  }
+
+  function makeBody(kind) {
+    const shape = kind.shape === 'cyl'
+      ? new CANNON.Cylinder(kind.r, kind.r, kind.h, 14)
+      : new CANNON.Box(new CANNON.Vec3(kind.w / 2, kind.h / 2, kind.d / 2));
+    const b = new CANNON.Body({ mass: kind.m, shape, linearDamping: 0.05, angularDamping: 0.2 });
+    // うすい具材が回りすぎないよう最低慣性（チート）
+    const I = b.inertia, mi = 0.03;
+    I.set(Math.max(I.x, mi), Math.max(I.y, mi), Math.max(I.z, mi));
+    b.invInertia.set(1 / I.x, 1 / I.y, 1 / I.z);
+    b.updateInertiaWorld(true);
+    return b;
+  }
+
+  // くずれた！ → 全具材を cannon-es の剛体にして本物の物理で落とす
+  function collapse(at) {
+    if (g.state !== 'play' && g.state !== 'keep') return;
+    const h = 1 / CFG.physHz;
+    const J = g.joints[at];
+    const a = Math.max(1e-6, J.tilt);
+    for (let i = 0; i < g.pieces.length; i++) {
+      const p = g.pieces[i];
+      const b = makeBody(p.kind);
+      b.collisionFilterGroup = G_PIECE; b.collisionFilterMask = G_GROUND | G_PIECE | G_PLATE;
+      b.position.copy(p.pos);
+      _q.setFromAxisAngle(_axis.set(0, 1, 0), p.yaw);
+      p.quat.mult(_q, b.quaternion);
+      p.pos.vsub(p.prevPos, b.velocity); b.velocity.scale(1 / h, b.velocity);
+      // 崩れた所から上は、傾いている向きへ少し押し出す（崩れる手ごたえ）
+      if (i >= at) {
+        b.velocity.x += J.L.x / a * 0.8; b.velocity.z += J.L.z / a * 0.8;
+        b.angularVelocity.set(J.L.z / a * 2, 0, -J.L.x / a * 2);
+      }
+      world.addBody(b);
+      p.body = b;
+    }
+    g.state = 'collapsing'; g.collapseT = 0; g.endReason = 'collapse';
+    g.events.push({ type: 'collapse', at });
+    if (g.falling) { toMiss(g.falling, false); g.falling = null; }
+  }
+
+  function topInfo() {
+    if (g.pieces.length) { const p = g.pieces[g.pieces.length - 1]; return { pos: p.pos, quat: p.quat, h: p.kind.h, r: radiusOf(p.kind) }; }
+    return { pos: plate.position, quat: IDQ, h: P.h, r: P.r };
+  }
+  function topSurface(out = new CANNON.Vec3()) {
+    const t = topInfo();
+    _v.set(0, t.h / 2, 0); t.quat.vmult(_v, out); out.vadd(t.pos, out);
+    return out;
+  }
+
+  function nextKindKey() {
+    if (g.mode.goal > 0 && g.count >= g.mode.goal) return 'topbun';
+    if (!g.bag.length) {
+      g.bag = CFG.bag.slice();
+      for (let i = g.bag.length - 1; i > 0; i--) { const r = Math.floor(rand() * (i + 1)); [g.bag[i], g.bag[r]] = [g.bag[r], g.bag[i]]; }
+    }
+    return g.bag.pop();
+  }
+  // 予告表示用（袋の中身を先読み）
+  function peekKinds(n) {
+    const out = [];
+    if (g.falling && g.falling.key === 'topbun') return out;
+    let remain = g.mode.goal > 0 ? g.mode.goal - g.count - (g.falling ? 1 : 0) : Infinity;
+    for (let i = g.bag.length - 1; i >= 0 && out.length < n && remain > 0; i--) { out.push(g.bag[i]); remain--; }
+    if (out.length < n && remain <= 0) out.push('topbun');
+    return out;
+  }
+
+  function fallSpeed() {
+    const m = g.mode;
+    if (m.speedUp) return m.fall * Math.min(m.speedMax, 1 + m.speedUp * g.count);
+    return m.fall;
+  }
+  function driftAmp() {
+    const m = g.mode;
+    if (m.driftUp) return Math.min(m.driftMax, m.drift + m.driftUp * Math.max(0, g.count - 8));
+    return m.drift;
+  }
+
+  function spawn() {
+    const key = nextKindKey();
+    const top = topSurface();
+    const m = g.mode;
+    // 今のタワーの位置から jump 以内のところに出す（遠すぎて間に合わない、をなくす）
+    const sgn = rand() < 0.5 ? -1 : 1;
+    let x = top.x + sgn * (m.jumpMin + rand() * (m.jump - m.jumpMin));
+    if (Math.abs(x) > m.spawnRange) x = top.x - sgn * (m.jumpMin + rand() * (m.jump - m.jumpMin));
+    x = Math.max(-m.spawnRange, Math.min(m.spawnRange, x));
+    const z = g.axis === 'xz' ? Math.max(-CFG.spawnRangeZ, Math.min(CFG.spawnRangeZ, top.z + (rand() * 2 - 1) * CFG.spawnRangeZ)) : 0;
+    g.falling = { key, kind: CFG.kinds[key], x, z, y: top.y + CFG.spawnHeight, x0: x,
+      phase: rand() * Math.PI * 2, spin: rand() * Math.PI * 2, age: 0 };
+    g.events.push({ type: 'spawn', key });
+  }
+
+  function toMiss(f, countLife) {
+    const b = makeBody(f.kind);
+    b.collisionFilterGroup = G_MISS; b.collisionFilterMask = G_GROUND;
+    b.position.set(f.x, f.y, f.z);
+    b.quaternion.setFromEuler(0, f.spin, 0);
+    b.velocity.set(0, -fallSpeed(), 0);
+    b.angularVelocity.set(rand() * 4 - 2, 0, rand() * 4 - 2);
+    world.addBody(b);
+    g.missed.push({ key: f.key, kind: f.kind, body: b, life: CFG.missLife });
+    if (countLife) {
+      g.lives--;
+      g.events.push({ type: 'miss', key: f.key });
+      if (g.lives <= 0 && g.state === 'play') { g.state = 'over'; g.endReason = 'lives'; g.events.push({ type: 'over', reason: 'lives' }); }
+    }
+  }
+
+  function attach(f) {
+    const t = topInfo();
+    const kind = f.kind;
+    // ずれ：一番上の具材の（傾きを戻した）座標で見た位置
+    const ts = topSurface();
+    _v.set(f.x - t.pos.x, ts.y - t.pos.y, f.z - t.pos.z);
+    t.quat.conjugate(_q); _q.vmult(_v, _v);
+    let lx = _v.x, lz = g.axis === 'xz' ? _v.z : 0;
+    const d = Math.hypot(lx, lz), lim = t.r * 0.95;
+    if (d > lim) { lx *= lim / d; lz *= lim / d; }
+    const dist = Math.hypot(lx, lz);
+    const p = { key: f.key, kind, pos: new CANNON.Vec3(), prevPos: new CANNON.Vec3(), quat: new CANNON.Quaternion(), yaw: f.spin, body: null, offset: dist };
+    const J = { off: { x: lx, z: lz }, L: { x: 0, z: 0 }, V: { x: 0, z: 0 }, pivot: new CANNON.Vec3(), glue: kind.glue, tilt: 0, over: 0, k: 0, I: 0 };
+    g.pieces.push(p); g.joints.push(J);
+    forwardKinematics();
+    p.prevPos.copy(p.pos);
+    // のった勢いで、つなぎ目が少しゆれる（ずれてのるほど大きく）
+    const v = fallSpeed();
+    for (let j = 0; j < g.joints.length; j++) {
+      const Jj = g.joints[j];
+      if (!Jj.I) continue;
+      (j === 0 ? IDQ : g.pieces[j - 1].quat).conjugate(_pqi);
+      _d.set(p.pos.x - Jj.pivot.x, 0, p.pos.z - Jj.pivot.z); _pqi.vmult(_d, _d);
+      Jj.V.x += CFG.impactKick * kind.m * v * _d.x / Jj.I;
+      Jj.V.z += CFG.impactKick * kind.m * v * _d.z / Jj.I;
+    }
+    const perfect = dist <= CFG.perfectDist;
+    if (f.key !== 'topbun') {
+      g.count++;
+      g.score += CFG.scorePer + (perfect ? CFG.scorePerfect : 0);
+    }
+    if (perfect) g.perfects++;
+    g.events.push({ type: 'catch', key: f.key, perfect, dist });
+    if (f.key === 'topbun') { g.state = 'keep'; g.keepT = 0; g.events.push({ type: 'keep' }); }
+  }
+
+  function updateFalling(dt) {
+    const f = g.falling;
+    if (!f) return;
+    f.age += dt;
+    f.y -= fallSpeed() * dt;
+    const a = driftAmp();
+    if (a) f.x = Math.max(-CFG.plateRangeX, Math.min(CFG.plateRangeX, f.x0 + (Math.sin(f.age * 1.6 + f.phase) - Math.sin(f.phase)) * a));
+    f.spin += dt * 1.2;
+    const top = topSurface();
+    const t = topInfo();
+    if (f.y - f.kind.h / 2 <= top.y) {
+      const dist = Math.hypot(f.x - top.x, f.z - top.z);
+      const catchDist = (t.r + radiusOf(f.kind)) * g.mode.catchFrac;
+      if (dist <= catchDist) attach(f);
+      else toMiss(f, true);
+      g.falling = null;
+      g.spawnT = CFG.respawnDelay;
+    }
+  }
+
+  function updatePlate(h) {
+    const limZ = g.axis === 'xz' ? CFG.plateRangeZ : 0;
+    const tx = Math.max(-CFG.plateRangeX, Math.min(CFG.plateRangeX, g.input.tx));
+    const tz = Math.max(-limZ, Math.min(limZ, g.input.tz));
+    const running = g.state === 'play' || g.state === 'keep';
+    const v = g.plateV, pp = plate.position;
+    const dvx = running ? Math.max(-CFG.plateMaxSpeed, Math.min(CFG.plateMaxSpeed, (tx - pp.x) * CFG.plateFollow)) : 0;
+    const dvz = running ? Math.max(-CFG.plateMaxSpeed, Math.min(CFG.plateMaxSpeed, (tz - pp.z) * CFG.plateFollow)) : 0;
+    const amax = CFG.plateAccel * h;
+    const nx = v.x + Math.max(-amax, Math.min(amax, dvx - v.x));
+    const nz = v.z + Math.max(-amax, Math.min(amax, dvz - v.z));
+    g.plateA.x = (nx - v.x) / h; g.plateA.z = (nz - v.z) / h;
+    v.x = nx; v.z = nz;
+    pp.x += v.x * h; pp.z += v.z * h;
+    plate.velocity.set(v.x, 0, v.z);   // cannon 側にも速度を伝える（崩れた具材との当たり用）
+  }
+
+  g.height = function () {
+    const top = topSurface();
+    return Math.max(0, (top.y - (CFG.plateY - P.h / 2)) * CFG.cmPerUnit);
+  };
+  g.topSurface = topSurface;
+  g.peekKinds = peekKinds;
+  g.radiusOf = radiusOf;
+  g.catchDist = function () {
+    if (!g.falling) return 0;
+    return (topInfo().r + radiusOf(g.falling.kind)) * g.mode.catchFrac;
+  };
+  g.maxTilt = function () { let m = 0; for (const J of g.joints) m = Math.max(m, J.tilt); return m; };
+
+  g.reset = function (modeKey = 'normal', axis = 'x') {
+    for (const p of g.pieces) if (p.body) world.removeBody(p.body);
+    for (const m of g.missed) world.removeBody(m.body);
+    g.pieces = []; g.joints = []; g.missed = []; g.falling = null; g.bag = [];
+    g.modeKey = modeKey; g.mode = CFG.modes[modeKey]; g.axis = axis;
+    g.lives = g.mode.lives; g.score = 0; g.count = 0; g.perfects = 0; g.bestHeight = 0;
+    g.state = 'play'; g.endReason = ''; g.spawnT = 0.8; g.keepT = 0; g.collapseT = 0; g.acc = 0;
+    g.t = 0; g.events = []; g.input.tx = 0; g.input.tz = 0;
+    g.plateV.x = g.plateV.z = 0; g.plateA.x = g.plateA.z = 0;
+    plate.position.set(0, CFG.plateY, 0); plate.velocity.set(0, 0, 0);
+  };
+
+  // dt：実時間（1/30秒でクランプ）。物理は固定ステップ 1/physHz で進める
+  g.step = function (dt) {
+    if (g.state === 'idle') return;
+    dt = Math.min(dt, 1 / 30);
+    g.t += dt;
+    if (g.state === 'play') {
+      if (g.falling) updateFalling(dt);
+      else { g.spawnT -= dt; if (g.spawnT <= 0) spawn(); }
+    }
+    const h = 1 / CFG.physHz;
+    g.acc += dt;
+    let n = 0;
+    while (g.acc >= h && n < CFG.maxSub) {
+      updatePlate(h);
+      if (g.state === 'play' || g.state === 'keep') { stepJoints(h); checkBreak(h); }
+      world.step(h);
+      g.acc -= h; n++;
+    }
+    if (n >= CFG.maxSub) g.acc = 0;
+    for (let i = g.missed.length - 1; i >= 0; i--) {
+      const m = g.missed[i]; m.life -= dt;
+      if (m.life <= 0) { world.removeBody(m.body); g.missed.splice(i, 1); }
+    }
+    if (g.state === 'keep') {
+      g.keepT += dt;
+      if (g.keepT >= CFG.keepTime) {
+        g.state = 'clear';
+        g.score += CFG.scoreClear + g.lives * CFG.scoreLife;
+        g.events.push({ type: 'clear' });
+      }
+    }
+    if (g.state === 'collapsing') {
+      g.collapseT += dt;
+      if (g.collapseT > CFG.collapseTime) { g.state = 'over'; g.events.push({ type: 'over', reason: 'collapse' }); }
+    }
+    if (g.state === 'play' || g.state === 'keep') g.bestHeight = Math.max(g.bestHeight, g.height());
+  };
+
+  return g;
+}
+
+// ===== CORE END =====
+
+
+// =====================================================================
+// ここから画面・音・操作
+// =====================================================================
+const G = createGame();
+const $ = (id) => document.getElementById(id);
+$('ver').textContent = CFG.version;
+
+// ---------- iPad対策：ズーム・スクロール防止 ----------
+document.addEventListener('gesturestart', (e) => e.preventDefault());
+document.addEventListener('gesturechange', (e) => e.preventDefault());
+let lastTouchEnd = 0;
+document.addEventListener('touchend', (e) => {
+  const now = Date.now();
+  if (now - lastTouchEnd <= 300) e.preventDefault();
+  lastTouchEnd = now;
+}, { passive: false });
+document.addEventListener('touchmove', (e) => {
+  if (e.target.closest && e.target.closest('.panel')) return;   // 説明パネルの中だけはスクロールできる
+  e.preventDefault();
+}, { passive: false });
+document.addEventListener('contextmenu', (e) => e.preventDefault());
+
+// ---------- 具材の名前と小さな絵（説明・つぎ表示・結果用） ----------
+const NAME = { patty: 'パティ', cheese: 'チーズ', lettuce: 'レタス', tomato: 'トマト', egg: 'たまご',
+  bacon: 'ベーコン', onion: 'たまねぎ', topbun: '<ruby>上<rt>うえ</rt></ruby>のバンズ', bun: '<ruby>下<rt>した</rt></ruby>のバンズ' };
+const SEEDS = '<ellipse cx="22" cy="15" rx="2" ry="1.2" fill="#FFF4DF"/><ellipse cx="32" cy="12" rx="2" ry="1.2" fill="#FFF4DF"/><ellipse cx="42" cy="15" rx="2" ry="1.2" fill="#FFF4DF"/><ellipse cx="27" cy="20" rx="2" ry="1.2" fill="#FFF4DF"/><ellipse cx="38" cy="20" rx="2" ry="1.2" fill="#FFF4DF"/>';
+const ICON = {
+  patty: '<rect x="6" y="13" width="52" height="15" rx="7.5" fill="#7A3E1D"/><path d="M12 17h40" stroke="#5A2B12" stroke-width="2" stroke-linecap="round"/>',
+  cheese: '<path d="M3 15h58v5h-9l-4 8-4-8H24l-4 6-4-6H3z" fill="#FFC52E" stroke="#D99A0E" stroke-width="1"/>',
+  lettuce: '<path d="M2 20q5-7 10 0t10 0 10 0 10 0 10 0 10 0v5q-5 5-10 0t-10 0-10 0-10 0-10 0-10 0z" fill="#6CC24A" stroke="#3E8E2E" stroke-width="1"/>',
+  tomato: '<rect x="9" y="15" width="46" height="11" rx="4" fill="#D9342B"/><rect x="13" y="15" width="38" height="3.5" rx="1.7" fill="#F27A6A"/>',
+  egg: '<path d="M4 25q3-6 13-5 6-6 15-4 8-3 14 2 10 0 14 7z" fill="#FFFDF5" stroke="#D9C9A6" stroke-width="1"/><ellipse cx="32" cy="18" rx="9" ry="6" fill="#FFB81C"/>',
+  bacon: '<path d="M4 19q7-6 14 0t14 0 14 0 14 0v6q-7 6-14 0t-14 0-14 0-14 0z" fill="#C8443A"/><path d="M4 22q7-6 14 0t14 0 14 0 14 0" stroke="#F6CFC4" stroke-width="1.8" fill="none"/>',
+  onion: '<ellipse cx="32" cy="20" rx="24" ry="6" fill="none" stroke="#B98BD0" stroke-width="4"/><ellipse cx="32" cy="20" rx="13" ry="3.4" fill="none" stroke="#DCC3EA" stroke-width="3"/>',
+  topbun: '<path d="M6 31q-1-23 26-23t26 23z" fill="#D98C3A" stroke="#A9601E" stroke-width="1"/>' + SEEDS,
+  bun: '<rect x="6" y="14" width="52" height="16" rx="7" fill="#D98C3A" stroke="#A9601E" stroke-width="1"/><rect x="8" y="13" width="48" height="5" rx="2.5" fill="#F6D9A8"/>',
+};
+const iconSVG = (k, w = 56, h = 35) => `<svg viewBox="0 0 64 40" width="${w}" height="${h}" aria-hidden="true">${ICON[k]}</svg>`;
+
+$('itemList').innerHTML = [...CFG.bag, 'topbun'].map((k) => `<span>${iconSVG(k, 48, 30)}${NAME[k]}</span>`).join('');
+
+// 説明の図：おちてくる具材・かげ・おさら・ゆび
+function howFigure(axis) {
+  const arrowsZ = axis === 'xz'
+    ? '<path d="M200 168v-26M200 142l-7 9M200 142l7 9M200 206v26M200 232l-7-9M200 232l7-9" stroke="#3B2216" stroke-width="5" stroke-linecap="round" fill="none"/>' : '';
+  return `<svg viewBox="0 0 320 250" role="img" aria-label="おちてくる具材を、おさらを動かして受け止める図">
+    <rect x="0" y="0" width="320" height="250" rx="16" fill="#BFE8E1"/>
+    <rect x="0" y="150" width="320" height="100" rx="0" fill="#F2D9B5"/>
+    <g transform="translate(118 14)"><svg width="84" height="52" viewBox="0 0 64 40">${ICON.patty}</svg></g>
+    <path d="M160 64v40" stroke="#3B2216" stroke-width="3" stroke-dasharray="6 6"/>
+    <g transform="translate(110 88)"><svg width="100" height="62" viewBox="0 0 64 40">${ICON.lettuce}</svg></g>
+    <ellipse cx="160" cy="111" rx="34" ry="7" fill="#4FAE3C" opacity=".75"/>
+    <g transform="translate(110 104)"><svg width="100" height="62" viewBox="0 0 64 40">${ICON.bun}</svg></g>
+    <ellipse cx="160" cy="153" rx="70" ry="10" fill="#fff" stroke="#3B2216" stroke-width="2"/>
+    <circle cx="200" cy="187" r="20" fill="#FFD8B8" stroke="#3B2216" stroke-width="3"/>
+    <text x="200" y="193" text-anchor="middle" font-size="15" font-weight="700" fill="#3B2216" font-family="BIZ UDPGothic, sans-serif">ゆび</text>
+    <path d="M168 187h-48M120 187l10-8M120 187l10 8M232 187h48M280 187l-10-8M280 187l-10 8" stroke="#3B2216" stroke-width="5" stroke-linecap="round" fill="none"/>
+    ${arrowsZ}
+    <text x="16" y="34" font-size="14" font-weight="700" fill="#3B2216" font-family="BIZ UDPGothic, sans-serif">おちてくる</text>
+    <text x="16" y="118" font-size="14" font-weight="700" fill="#2F7A22" font-family="BIZ UDPGothic, sans-serif">かげ</text>
+  </svg>`;
+}
+
+// ---------- 音（Web Audio で合成） ----------
+let AC = null;
+function audioInit() {
+  try {
+    if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)();
+    if (AC.state !== 'running') AC.resume();
+  } catch (e) { AC = null; }
+}
+function tone(freq, dur, { type = 'sine', vol = 0.18, to = null, delay = 0 } = {}) {
+  if (!AC) return;
+  const t0 = AC.currentTime + delay;
+  const o = AC.createOscillator(), g = AC.createGain();
+  o.type = type; o.frequency.setValueAtTime(freq, t0);
+  if (to) o.frequency.exponentialRampToValueAtTime(to, t0 + dur);
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(vol, t0 + 0.012);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  o.connect(g).connect(AC.destination);
+  o.start(t0); o.stop(t0 + dur + 0.02);
+}
+function noise(dur, { vol = 0.25, freq = 800, delay = 0 } = {}) {
+  if (!AC) return;
+  const t0 = AC.currentTime + delay;
+  const len = Math.floor(AC.sampleRate * dur);
+  const buf = AC.createBuffer(1, len, AC.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
+  const src = AC.createBufferSource(); src.buffer = buf;
+  const f = AC.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = freq;
+  const g = AC.createGain(); g.gain.value = vol;
+  src.connect(f).connect(g).connect(AC.destination); src.start(t0);
+}
+const SFX = {
+  click() { tone(660, 0.07, { type: 'square', vol: 0.06 }); },
+  catch() { tone(300, 0.12, { to: 520, vol: 0.2 }); noise(0.05, { vol: 0.12, freq: 1500 }); },
+  perfect() { tone(880, 0.12, { type: 'triangle', vol: 0.16 }); tone(1320, 0.22, { type: 'triangle', vol: 0.16, delay: 0.08 }); },
+  miss() { tone(500, 0.35, { type: 'sawtooth', to: 160, vol: 0.08 }); },
+  collapse() { noise(0.7, { vol: 0.4, freq: 600 }); tone(140, 0.6, { to: 50, vol: 0.25 }); },
+  keep() { tone(520, 0.1, { type: 'triangle', vol: 0.12 }); },
+  clear() { [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.28, { type: 'triangle', vol: 0.16, delay: i * 0.11 })); tone(1568, 0.5, { type: 'sine', vol: 0.1, delay: 0.5 }); },
+  over() { [392, 330, 262].forEach((f, i) => tone(f, 0.3, { type: 'triangle', vol: 0.12, delay: i * 0.18 })); },
+};
+
+// ---------- 3D ----------
+const canvas = $('cv');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#7FCFC4');
+const camera = new THREE.PerspectiveCamera(CFG.fov, 1, 0.1, 200);
+
+scene.add(new THREE.HemisphereLight('#ffffff', '#f3c48a', 1.6));
+const sun = new THREE.DirectionalLight('#fff6e8', 2.2);
+sun.castShadow = true;
+sun.shadow.mapSize.set(1024, 1024);
+Object.assign(sun.shadow.camera, { left: -6, right: 6, top: 6, bottom: -6, near: 0.5, far: 40 });
+sun.shadow.bias = -0.0008;
+scene.add(sun, sun.target);
+
+function canvasTex(w, h, draw, repeat) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  draw(c.getContext('2d'), w, h);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  if (repeat) { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(repeat[0], repeat[1]); }
+  t.anisotropy = 4;
+  return t;
+}
+function speckle(ctx, w, h, base, dots, n, size) {
+  ctx.fillStyle = base; ctx.fillRect(0, 0, w, h);
+  for (let i = 0; i < n; i++) {
+    ctx.fillStyle = dots[i % dots.length];
+    ctx.globalAlpha = 0.25 + Math.random() * 0.4;
+    ctx.beginPath(); ctx.arc(Math.random() * w, Math.random() * h, Math.random() * size + 0.5, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+// かべ（お店のかべ：うすい水色に白い水玉）
+{
+  const tex = canvasTex(512, 512, (c, w, h) => {
+    const gr = c.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#9BDDD3'); gr.addColorStop(1, '#6FC2B6');
+    c.fillStyle = gr; c.fillRect(0, 0, w, h);
+    c.fillStyle = 'rgba(255,255,255,.22)';
+    for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) { c.beginPath(); c.arc(x * 64 + (y % 2) * 32 + 16, y * 64 + 32, 9, 0, Math.PI * 2); c.fill(); }
+  }, [6, 5]);
+  const wall = new THREE.Mesh(new THREE.PlaneGeometry(120, 100), new THREE.MeshBasicMaterial({ map: tex }));
+  wall.position.set(0, 30, -14); scene.add(wall);
+}
+// カウンター（赤白チェックのテーブルクロス）
+{
+  const tex = canvasTex(256, 256, (c, w, h) => {
+    c.fillStyle = '#FFF7EC'; c.fillRect(0, 0, w, h);
+    c.fillStyle = 'rgba(229,67,45,.55)'; c.fillRect(0, 0, w / 2, h); c.fillRect(0, 0, w, h / 2);
+    c.fillStyle = 'rgba(229,67,45,.35)'; c.fillRect(0, 0, w / 2, h / 2);
+  }, [24, 8]);
+  const counter = new THREE.Mesh(new THREE.BoxGeometry(48, 1, 16), new THREE.MeshStandardMaterial({ map: tex, roughness: 0.95 }));
+  counter.position.set(0, CFG.tableY - 0.5, -2); counter.receiveShadow = true; scene.add(counter);
+}
+
+// ---------- 具材の3Dモデル ----------
+function roundedDiscGeo(r, h, bevel, seg = 40) {
+  const b = Math.min(bevel, h / 2 - 0.001), pts = [new THREE.Vector2(0, -h / 2)];
+  for (let i = 0; i <= 6; i++) { const a = -Math.PI / 2 + (i / 6) * Math.PI / 2; pts.push(new THREE.Vector2(r - b + Math.cos(a) * b, -h / 2 + b + Math.sin(a) * b)); }
+  for (let i = 0; i <= 6; i++) { const a = (i / 6) * Math.PI / 2; pts.push(new THREE.Vector2(r - b + Math.cos(a) * b, h / 2 - b + Math.sin(a) * b)); }
+  pts.push(new THREE.Vector2(0, h / 2));
+  return new THREE.LatheGeometry(pts, seg);
+}
+function wavyGeo(geo, fn) {
+  const p = geo.attributes.position, v = new THREE.Vector3();
+  for (let i = 0; i < p.count; i++) { v.fromBufferAttribute(p, i); fn(v); p.setXYZ(i, v.x, v.y, v.z); }
+  geo.computeVertexNormals();
+  return geo;
+}
+const MAT = {};
+function mat(key, make) { return MAT[key] || (MAT[key] = make()); }
+const std = (o) => new THREE.MeshStandardMaterial(Object.assign({ roughness: 0.75 }, o));
+
+function makeMesh(key) {
+  const K = key === 'bun' ? CFG.plateKind : CFG.kinds[key];
+  const grp = new THREE.Group();
+  const add = (geo, m, y = 0) => { const me = new THREE.Mesh(geo, m); me.position.y = y; me.castShadow = true; me.receiveShadow = true; grp.add(me); return me; };
+  if (key === 'bun') {
+    add(roundedDiscGeo(K.r, K.h, 0.09), mat('bun', () => std({ color: '#D98C3A', roughness: 0.6 })));
+    add(new THREE.CylinderGeometry(K.r * 0.9, K.r * 0.9, 0.012, 40), mat('crumb', () => std({ map: canvasTex(128, 128, (c, w, h) => speckle(c, w, h, '#F6D9A8', ['#E8C189', '#FFF1D6'], 300, 2)) })), K.h / 2 - 0.002);
+  } else if (key === 'topbun') {
+    const pts = [new THREE.Vector2(0, -K.h / 2), new THREE.Vector2(K.r - 0.05, -K.h / 2), new THREE.Vector2(K.r, -K.h / 2 + 0.05)];
+    for (let i = 1; i <= 12; i++) { const a = (i / 12) * Math.PI / 2; pts.push(new THREE.Vector2(K.r * Math.cos(a), -K.h / 2 + 0.05 + (K.h - 0.05) * Math.pow(Math.sin(a), 0.85))); }
+    add(new THREE.LatheGeometry(pts, 40), mat('topbun', () => std({ color: '#D98C3A', roughness: 0.5 })));
+    const seedGeo = new THREE.SphereGeometry(0.035, 8, 6); seedGeo.scale(1, 0.45, 0.6);
+    const sm = mat('seed', () => std({ color: '#FFF1D0' }));
+    for (let i = 0; i < 18; i++) {
+      const a = 0.35 + Math.random() * 0.95, ph = Math.random() * Math.PI * 2;
+      const rr = K.r * Math.cos(a) * 0.97, y = -K.h / 2 + 0.05 + (K.h - 0.05) * Math.pow(Math.sin(a), 0.85) + 0.01;
+      const s = new THREE.Mesh(seedGeo, sm); s.position.set(rr * Math.cos(ph), y, rr * Math.sin(ph));
+      s.rotation.set(0, -ph, (Math.PI / 2 - a) * 0.9); grp.add(s);
+    }
+  } else if (key === 'patty') {
+    add(roundedDiscGeo(K.r, K.h, 0.09), mat('patty', () => std({ roughness: 0.95,
+      map: canvasTex(256, 128, (c, w, h) => speckle(c, w, h, '#74391A', ['#4E230D', '#9A5328', '#3A1A08'], 900, 3)) })));
+  } else if (key === 'cheese') {
+    const geo = wavyGeo(new THREE.BoxGeometry(K.w, K.h, K.d, 10, 1, 10), (v) => {
+      const d = Math.max(Math.abs(v.x), Math.abs(v.z)); v.y -= Math.max(0, d - 0.38) * 0.35;
+    });
+    add(geo, mat('cheese', () => std({ color: '#FFC52E', roughness: 0.45 })));
+  } else if (key === 'lettuce') {
+    const geo = wavyGeo(new THREE.CylinderGeometry(K.r, K.r * 0.96, K.h, 72, 1), (v) => {
+      const th = Math.atan2(v.z, v.x), rad = Math.hypot(v.x, v.z);
+      if (rad > 0.01) { const f = 1 + 0.07 * Math.sin(9 * th) + 0.04 * Math.sin(17 * th + 1); v.x *= f; v.z *= f; v.y += 0.03 * Math.sin(11 * th) * (rad / K.r); }
+    });
+    add(geo, mat('lettuce', () => std({ color: '#6CC24A', roughness: 0.6, flatShading: true })));
+  } else if (key === 'tomato') {
+    const top = mat('tomTop', () => std({ roughness: 0.4, map: canvasTex(256, 256, (c, w, h) => {
+      c.fillStyle = '#D9342B'; c.fillRect(0, 0, w, h);
+      c.fillStyle = '#F06B55'; c.beginPath(); c.arc(w / 2, h / 2, w * 0.43, 0, Math.PI * 2); c.fill();
+      c.fillStyle = '#E2463A';
+      for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2; c.beginPath(); c.ellipse(w / 2 + Math.cos(a) * w * 0.24, h / 2 + Math.sin(a) * h * 0.24, w * 0.12, w * 0.08, a, 0, Math.PI * 2); c.fill(); }
+      c.fillStyle = '#FFE7A6';
+      for (let i = 0; i < 5; i++) for (let s = 0; s < 4; s++) { const a = i / 5 * Math.PI * 2 + (s - 1.5) * 0.12; c.beginPath(); c.ellipse(w / 2 + Math.cos(a) * w * 0.25, h / 2 + Math.sin(a) * h * 0.25, 5, 3, a, 0, Math.PI * 2); c.fill(); }
+    }) }));
+    add(new THREE.CylinderGeometry(K.r, K.r, K.h, 40), [mat('tomSide', () => std({ color: '#D9342B', roughness: 0.4 })), top, top]);
+  } else if (key === 'egg') {
+    const geo = wavyGeo(new THREE.CylinderGeometry(K.r, K.r, K.h * 0.55, 56, 1), (v) => {
+      const th = Math.atan2(v.z, v.x), f = 1 + 0.07 * Math.sin(5 * th) + 0.05 * Math.sin(3 * th + 2); v.x *= f; v.z *= f;
+    });
+    add(geo, mat('white', () => std({ color: '#FFFDF5', roughness: 0.5 })), -K.h * 0.2);
+    const yolk = new THREE.SphereGeometry(0.2, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2); yolk.scale(1, 0.55, 1);
+    const y = add(yolk, mat('yolk', () => std({ color: '#FFB81C', roughness: 0.3 })), -K.h * 0.2 + K.h * 0.27);
+    y.position.x = 0.08; y.position.z = 0.04;
+  } else if (key === 'bacon') {
+    const geo = wavyGeo(new THREE.BoxGeometry(K.w, K.h, K.d, 30, 1, 2), (v) => { v.y += 0.035 * Math.sin(v.x * 9); });
+    add(geo, mat('bacon', () => std({ roughness: 0.55, map: canvasTex(64, 128, (c, w, h) => {
+      const bands = ['#B8352C', '#F2B6A8', '#C8443A', '#F6CFC4', '#A82E25', '#E07B6A', '#B8352C'];
+      bands.forEach((col, i) => { c.fillStyle = col; c.fillRect(0, i * h / bands.length, w, h / bands.length + 1); });
+    }) })));
+  } else if (key === 'onion') {
+    const m = mat('onion', () => std({ color: '#E3CCEE', roughness: 0.35 }));
+    const t1 = new THREE.TorusGeometry(0.36, 0.045, 10, 48); t1.rotateX(Math.PI / 2);
+    const t2 = new THREE.TorusGeometry(0.22, 0.04, 10, 40); t2.rotateX(Math.PI / 2);
+    add(t1, m); add(t2, mat('onion2', () => std({ color: '#C79BDD', roughness: 0.35 })));
+  }
+  return grp;
+}
+
+// おさら＋下のバンズ
+const plateGroup = new THREE.Group();
+{
+  const P = CFG.plateKind;
+  const dish = new THREE.Mesh(new THREE.CylinderGeometry(1.05, 0.82, 0.08, 56), std({ color: '#FFFFFF', roughness: 0.25 }));
+  dish.position.y = -P.h / 2 - 0.04; dish.castShadow = true; dish.receiveShadow = true;
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(1.03, 0.025, 8, 56), std({ color: '#E5432D', roughness: 0.4 }));
+  rim.rotation.x = Math.PI / 2; rim.position.y = -P.h / 2;
+  plateGroup.add(dish, rim, makeMesh('bun'));
+  scene.add(plateGroup);
+}
+
+// 落下ガイド（見た目だけの影と線）
+const guide = new THREE.Group();
+const guideRing = new THREE.Mesh(new THREE.CircleGeometry(1, 40), new THREE.MeshBasicMaterial({ color: '#4FAE3C', transparent: true, opacity: 0.55, depthWrite: false }));
+guideRing.rotation.x = -Math.PI / 2;
+const guideLine = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 1, 6), new THREE.MeshBasicMaterial({ color: '#3B2216', transparent: true, opacity: 0.35 }));
+guide.add(guideRing, guideLine); scene.add(guide);
+
+// ---------- 見た目の同期 ----------
+const visuals = new Map();   // ゲーム内のもの → メッシュ
+const _yaw = new THREE.Quaternion(), _q3 = new THREE.Quaternion(), _up = new THREE.Vector3(0, 1, 0);
+function visualFor(obj, key) {
+  let m = visuals.get(obj);
+  if (!m) { m = makeMesh(key); scene.add(m); visuals.set(obj, m); obj._pop = 0; }
+  m.userData.seen = true;
+  return m;
+}
+function syncVisuals(dt) {
+  for (const m of visuals.values()) m.userData.seen = false;
+  plateGroup.position.set(G.plate.position.x, G.plate.position.y, G.plate.position.z);
+  for (const p of G.pieces) {
+    const m = visualFor(p, p.key);
+    if (p.body) { m.position.copy(p.body.position); m.quaternion.copy(p.body.quaternion); }
+    else {
+      m.position.set(p.pos.x, p.pos.y, p.pos.z);
+      _q3.set(p.quat.x, p.quat.y, p.quat.z, p.quat.w);
+      m.quaternion.copy(_q3).multiply(_yaw.setFromAxisAngle(_up, p.yaw));
+    }
+    // のった瞬間の「むにっ」
+    p._pop = Math.max(0, (p._pop ?? 0) - dt * 4);
+    const s = Math.sin(p._pop * Math.PI) * 0.22;
+    m.scale.set(1 + s * 0.5, 1 - s, 1 + s * 0.5);
+  }
+  const f = G.falling;
+  if (f) {
+    const m = visualFor(f, f.key);
+    m.position.set(f.x, f.y, f.z);
+    m.quaternion.setFromAxisAngle(_up, f.spin);
+    m.scale.set(1, 1, 1);
+    // ガイド
+    const top = G.topSurface();
+    const r = G.radiusOf(f.kind);
+    const ok = Math.hypot(f.x - top.x, f.z - top.z) <= G.catchDist();
+    guide.visible = true;
+    guideRing.position.set(f.x, top.y + 0.015, f.z);
+    guideRing.scale.setScalar(r * 0.9);
+    guideRing.material.color.set(ok ? '#4FAE3C' : '#E5432D');
+    guideRing.material.opacity = ok ? 0.6 : 0.4;
+    const len = Math.max(0.01, f.y - f.kind.h / 2 - top.y);
+    guideLine.position.set(f.x, top.y + len / 2, f.z); guideLine.scale.y = len;
+  } else guide.visible = false;
+  for (const ms of G.missed) {
+    const m = visualFor(ms, ms.key);
+    m.position.copy(ms.body.position); m.quaternion.copy(ms.body.quaternion);
+    m.scale.setScalar(Math.min(1, ms.life / 0.4));
+  }
+  for (const [obj, m] of visuals) if (!m.userData.seen) { scene.remove(m); visuals.delete(obj); }
+}
+
+// ---------- カメラ（タワーの上と、おちてくる具材がいっしょに見えるように） ----------
+const cam = { x: 0, y: 2, d: 9, init: false };
+function updateCamera(dt) {
+  const w = window.innerWidth, h = window.innerHeight;
+  const aspect = w / h;
+  camera.aspect = aspect;
+  const tanH = Math.tan(THREE.MathUtils.degToRad(CFG.fov / 2));
+  const top = G.topSurface();
+  const f = G.falling;
+  // タワーの上と、おちてくる具材の あいだを見る
+  const halfV = CFG.spawnHeight / 2 + 1.1, halfW = 3.5;
+  const d = Math.max(halfV / tanH, halfW / (tanH * aspect));
+  const tx = THREE.MathUtils.clamp(f ? (top.x + f.x) / 2 : top.x * 0.8, -2.2, 2.2);
+  const ty = Math.max(1.2, top.y + CFG.spawnHeight * 0.42);
+  const k = cam.init ? 1 - Math.pow(1 - 0.05, dt * 60) : 1;
+  cam.x += (tx - cam.x) * k; cam.y += (ty - cam.y) * k; cam.d += (d - cam.d) * k; cam.init = true;
+  const xz = G.axis === 'xz';
+  const lift = xz ? cam.d * 0.45 : cam.d * 0.14;
+  camera.position.set(cam.x, cam.y + lift, cam.d * (xz ? 0.9 : 1));
+  camera.lookAt(cam.x, cam.y - (xz ? 0.5 : 0.15), 0);
+  camera.updateProjectionMatrix();
+  // 光はほぼ真上から（本物のかげが、ガイドの円と同じ場所に落ちるように）
+  sun.position.set(cam.x + 0.6, cam.y + 14, 1.2);
+  sun.target.position.set(cam.x, cam.y - 2, 0);
+}
+function resize() {
+  renderer.setSize(window.innerWidth, window.innerHeight, false);
+}
+window.addEventListener('resize', resize);
+resize();
+
+// ---------- HUD ----------
+const hudCache = {};
+function setText(id, v) { if (hudCache[id] !== v) { hudCache[id] = v; $(id).innerHTML = v; } }
+function updateHUD() {
+  setText('score', String(G.score));
+  setText('height', String(Math.round(G.state === 'collapsing' || G.state === 'over' ? G.bestHeight : G.height())));
+  setText('count', String(G.count));
+  setText('goal', G.mode.goal ? `/${G.mode.goal}こ` : 'こ');
+  let hs = '';
+  for (let i = 0; i < G.mode.lives; i++) hs += i < G.lives ? '♥' : '<span class="off">♥</span>';
+  setText('hearts', hs);
+  const nx = G.state === 'idle' ? [] : G.peekKinds(2);
+  setText('nextList', nx.length ? nx.map((k) => `<div class="nx">${iconSVG(k, 52, 33)}<span>${NAME[k]}</span></div>`).join('') : '<div class="nx" style="opacity:.5">―</div>');
+  const keep = $('keep');
+  if (G.state === 'keep') { keep.hidden = false; $('keepFill').style.width = `${Math.min(100, G.keepT / CFG.keepTime * 100)}%`; }
+  else keep.hidden = true;
+}
+function showMsg(text) {
+  const m = $('msg'); m.textContent = text; m.classList.remove('show'); void m.offsetWidth; m.classList.add('show');
+}
+const _proj = new THREE.Vector3();
+function floatText(text, pos) {
+  _proj.set(pos.x, pos.y, pos.z).project(camera);
+  const el = document.createElement('div'); el.className = 'float'; el.textContent = text;
+  el.style.left = `${(_proj.x * 0.5 + 0.5) * window.innerWidth}px`;
+  el.style.top = `${(-_proj.y * 0.5 + 0.5) * window.innerHeight}px`;
+  $('fx').appendChild(el); setTimeout(() => el.remove(), 1100);
+}
+function confetti() {
+  const cols = ['#E5432D', '#F6B92B', '#4FAE3C', '#FFF4DF', '#7A3E1D'];
+  for (let i = 0; i < 46; i++) {
+    const el = document.createElement('div'); el.className = 'confetti';
+    el.style.left = `${Math.random() * 100}vw`; el.style.background = cols[i % cols.length];
+    el.style.animationDuration = `${1.6 + Math.random() * 1.4}s`; el.style.animationDelay = `${Math.random() * 0.4}s`;
+    $('fx').appendChild(el); setTimeout(() => el.remove(), 3600);
+  }
+}
+
+// ---------- できごと（音・メッセージ） ----------
+let resultTimer = null, keepBeep = 0;
+function processEvents() {
+  const evs = G.events.splice(0);
+  for (const e of evs) {
+    if (e.type === 'catch') {
+      const p = G.pieces[G.pieces.length - 1];
+      if (p) p._pop = 1;
+      SFX.catch();
+      const top = G.topSurface();
+      if (e.key === 'topbun') { showMsg('のせた！ キープ！'); keepBeep = 0; }
+      else if (e.perfect) { SFX.perfect(); showMsg('ぴったり！'); floatText(`+${CFG.scorePer + CFG.scorePerfect}`, top); }
+      else floatText(`+${CFG.scorePer}`, top);
+    } else if (e.type === 'miss') {
+      SFX.miss(); showMsg(G.lives > 0 ? 'おしい！' : 'ライフが なくなった');
+    } else if (e.type === 'collapse') {
+      SFX.collapse(); showMsg('くずれた！');
+    } else if (e.type === 'clear') {
+      SFX.clear(); showMsg('かんせい！'); confetti();
+      scheduleResult(1.6);
+    } else if (e.type === 'over') {
+      SFX.over(); scheduleResult(e.reason === 'lives' ? 1.4 : 0.3);
+    }
+  }
+  if (G.state === 'keep') {
+    const sec = Math.floor(G.keepT * 2);
+    if (sec > keepBeep) { keepBeep = sec; SFX.keep(); }
+  }
+}
+function scheduleResult(sec) {
+  clearTimeout(resultTimer);
+  resultTimer = setTimeout(showResult, sec * 1000);
+}
+function showResult() {
+  const clear = G.state === 'clear';
+  const endless = G.modeKey === 'endless';
+  $('rTitle').textContent = clear ? 'かんせい！' : (G.endReason === 'collapse' ? 'くずれた…' : 'おしまい');
+  $('rTitle').style.color = clear ? 'var(--lettuce)' : 'var(--ketchup)';
+  const keys = ['bun', ...G.pieces.map((p) => p.key)].slice(-14);
+  $('rStack').innerHTML = keys.map((k) => iconSVG(k, 84, 52)).join('');
+  $('rSub').innerHTML = clear ? `${G.count}こ つんで、ハンバーガーが できあがったよ！`
+    : endless ? `${G.count}こ つめたよ。つぎは もっと たかく！`
+    : `あと ${Math.max(0, G.mode.goal - G.count)}こ だったよ。もういちど チャレンジ！`;
+  $('rScore').textContent = String(G.score);
+  $('rHeight').textContent = `${Math.round(G.bestHeight)}cm`;
+  $('rCount').textContent = `${G.count}こ`;
+  $('rPerfect').textContent = `${G.perfects}かい`;
+  $('result').hidden = false;
+}
+
+// ---------- 説明画面・モード選択 ----------
+let selMode = 'normal', selAxis = 'x', paused = true;
+function refreshChoice() {
+  document.querySelectorAll('[data-mode]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.mode === selMode)));
+  document.querySelectorAll('[data-axis]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.axis === selAxis)));
+  $('howFig').innerHTML = howFigure(selAxis);
+  $('dirWord').innerHTML = selAxis === 'xz' ? '<ruby>左右<rt>さゆう</rt></ruby>と<ruby>前後<rt>ぜんご</rt></ruby>' : '<ruby>左右<rt>さゆう</rt></ruby>';
+}
+document.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', () => { audioInit(); SFX.click(); selMode = b.dataset.mode; refreshChoice(); }));
+document.querySelectorAll('[data-axis]').forEach((b) => b.addEventListener('click', () => { audioInit(); SFX.click(); selAxis = b.dataset.axis; refreshChoice(); }));
+refreshChoice();
+
+function openHelp(asPause) {
+  $('chooseBox').hidden = asPause; $('pauseBox').hidden = !asPause;
+  if (asPause) $('howFig').innerHTML = howFigure(G.axis);
+  $('help').hidden = false; paused = true; releaseAll();
+}
+function startGame(mode, axis) {
+  clearTimeout(resultTimer);
+  G.reset(mode, axis);
+  input.tx = 0; input.tz = 0;
+  $('result').hidden = true; $('help').hidden = true;
+  const xz = axis === 'xz';
+  $('dpad').hidden = !xz; $('bL').hidden = xz; $('bR').hidden = xz;
+  $('countLbl').textContent = 'つんだ かず';
+  cam.init = false; paused = false; last = performance.now();
+  for (const k in hudCache) delete hudCache[k];
+}
+$('startBtn').addEventListener('click', () => { audioInit(); SFX.click(); startGame(selMode, selAxis); });
+$('resumeBtn').addEventListener('click', () => { audioInit(); SFX.click(); $('help').hidden = true; paused = false; last = performance.now(); });
+$('toMenuBtn').addEventListener('click', () => { SFX.click(); toMenu(); });
+$('helpBtn').addEventListener('click', () => {
+  audioInit(); SFX.click();
+  if (G.state === 'play' || G.state === 'keep' || G.state === 'collapsing') openHelp(true);
+  else { $('result').hidden = true; toMenu(); }
+});
+$('againBtn').addEventListener('click', () => { audioInit(); SFX.click(); startGame(G.modeKey, G.axis); });
+$('menuBtn').addEventListener('click', () => { SFX.click(); toMenu(); });
+function toMenu() {
+  clearTimeout(resultTimer);
+  $('result').hidden = true;
+  selMode = G.state === 'idle' ? selMode : G.modeKey; selAxis = G.state === 'idle' ? selAxis : G.axis;
+  G.reset(selMode, selAxis); G.state = 'idle';
+  refreshChoice(); openHelp(false);
+}
+
+// ---------- 操作：ゆびでドラッグ／ボタン／キーボード ----------
+const input = { tx: 0, tz: 0 };
+const held = { L: 0, R: 0, U: 0, D: 0 };
+function clampInput() {
+  input.tx = THREE.MathUtils.clamp(input.tx, -CFG.plateRangeX, CFG.plateRangeX);
+  input.tz = G.axis === 'xz' ? THREE.MathUtils.clamp(input.tz, -CFG.plateRangeZ, CFG.plateRangeZ) : 0;
+}
+let drag = null;
+canvas.addEventListener('pointerdown', (e) => {
+  if (paused) return;
+  audioInit();
+  drag = { id: e.pointerId, x: e.clientX, y: e.clientY };
+  try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
+});
+canvas.addEventListener('pointermove', (e) => {
+  if (!drag || e.pointerId !== drag.id || paused) return;
+  // 画面の1ピクセルが、おさらの位置で何マスぶんか
+  const dist = camera.position.distanceTo(plateGroup.position);
+  const perPx = 2 * dist * Math.tan(THREE.MathUtils.degToRad(CFG.fov / 2)) / window.innerHeight * CFG.dragGain;
+  input.tx += (e.clientX - drag.x) * perPx;
+  if (G.axis === 'xz') input.tz += (e.clientY - drag.y) * perPx * 1.4;
+  drag.x = e.clientX; drag.y = e.clientY;
+  clampInput();
+});
+const endDrag = (e) => { if (drag && e.pointerId === drag.id) drag = null; };
+canvas.addEventListener('pointerup', endDrag);
+canvas.addEventListener('pointercancel', endDrag);
+
+function bindPad(id, dir) {
+  const el = $(id);
+  const on = (e) => { e.preventDefault(); audioInit(); held[dir] = 1; el.classList.add('on'); try { el.setPointerCapture(e.pointerId); } catch (_) {} };
+  const off = () => { held[dir] = 0; el.classList.remove('on'); };
+  el.addEventListener('pointerdown', on);
+  el.addEventListener('pointerup', off); el.addEventListener('pointercancel', off); el.addEventListener('lostpointercapture', off);
+}
+bindPad('bL', 'L'); bindPad('bR', 'R'); bindPad('dL', 'L'); bindPad('dR', 'R'); bindPad('dU', 'U'); bindPad('dD', 'D');
+function releaseAll() { for (const k in held) held[k] = 0; document.querySelectorAll('.pad.on').forEach((b) => b.classList.remove('on')); drag = null; }
+const KEYS = { ArrowLeft: 'L', ArrowRight: 'R', ArrowUp: 'U', ArrowDown: 'D', a: 'L', d: 'R', w: 'U', s: 'D' };
+window.addEventListener('keydown', (e) => { if (KEYS[e.key]) { held[KEYS[e.key]] = 1; e.preventDefault(); } });
+window.addEventListener('keyup', (e) => { if (KEYS[e.key]) held[KEYS[e.key]] = 0; });
+function applyHeld(dt) {
+  if (held.L || held.R) {
+    // ボタンを押している間は「今のおさらの位置」から動かす（はなすとすぐ止まる）
+    input.tx = G.plate.position.x + (held.R - held.L) * CFG.buttonSpeed / CFG.plateFollow;
+  }
+  if (G.axis === 'xz' && (held.U || held.D)) input.tz = G.plate.position.z + (held.D - held.U) * CFG.buttonSpeed / CFG.plateFollow;
+  clampInput();
+}
+
+// ---------- メインループ ----------
+let last = performance.now();
+const hooks = { frames: 0, elapsed: 0 };
+function frame(now) {
+  requestAnimationFrame(frame);
+  const dt = Math.min((now - last) / 1000, 1 / 30);   // 120Hz でも 30Hz でも同じ速さ（dtで進める）
+  last = now;
+  if (!paused) {
+    applyHeld(dt);
+    G.input.tx = input.tx; G.input.tz = input.tz;
+    G.step(dt);
+  }
+  processEvents();
+  syncVisuals(dt);
+  updateCamera(dt);
+  updateHUD();
+  renderer.render(scene, camera);
+  hooks.frames++; hooks.elapsed += dt;
+}
+G.reset(selMode, selAxis); G.state = 'idle';
+openHelp(false);
+requestAnimationFrame(frame);
+
+// ---------- テスト用フック ----------
+// 注意：くずれる前の具材は .position ではなく、つなぎ目の曲がり joints[i].L と のった位置のずれ joints[i].off で動いている
+//       （pieces[i].pos / quat はそこから毎ステップ計算した結果）。落下中の具材は falling.x / y / z（内部データ）で動かしている。
+window.__game = window.__G = {
+  core: G, camera, CFG,
+  get state() { return G.state; },
+  get pieces() { return G.pieces; },
+  get joints() { return G.joints; },
+  get falling() { return G.falling; },
+  get frames() { return hooks.frames; },
+  get elapsed() { return hooks.elapsed; },
+  get paused() { return paused; },
+  api: {
+    start(mode = 'normal', axis = 'x') { startGame(mode, axis); },
+    tick(n = 1, dt = 1 / 60) {          // 固定ステップで進める（描画はしない）
+      for (let i = 0; i < n; i++) { G.input.tx = input.tx; G.input.tz = input.tz; G.step(dt); processEvents(); }
+      syncVisuals(dt);
+    },
+    getState() {
+      return { state: G.state, mode: G.modeKey, axis: G.axis, score: G.score, count: G.count, lives: G.lives,
+        height: Math.round(G.height()), plateX: G.plate.position.x, plateZ: G.plate.position.z,
+        maxTilt: G.maxTilt(), falling: G.falling ? { key: G.falling.key, x: G.falling.x, y: G.falling.y, z: G.falling.z } : null,
+        paused, helpOpen: !$('help').hidden, resultOpen: !$('result').hidden };
+    },
+    setTarget(x, z = 0) { input.tx = x; input.tz = z; clampInput(); },
+    aimFalling() {   // 落ちてくる具材の真下にタワーの上が来るように目標を合わせる
+      const f = G.falling; if (!f) return false;
+      const top = G.topSurface();
+      input.tx = G.plate.position.x + (f.x - top.x); input.tz = G.plate.position.z + (f.z - top.z); clampInput(); return true;
+    },
+    pause() { openHelp(true); },
+    resume() { $('help').hidden = true; paused = false; last = performance.now(); },
+    showResult,
+  },
+};
+</script>
+</body>
+</html>
