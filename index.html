@@ -53,17 +53,17 @@ button:focus-visible{outline:3px solid var(--ketchup);outline-offset:2px;}
 #ver{position:absolute;left:calc(env(safe-area-inset-left,0px) + 8px);bottom:calc(env(safe-area-inset-bottom,0px) + 4px);
   font-size:11px;opacity:.55;font-variant-numeric:tabular-nums;}
 
-/* ボタン操作 */
-.pad{position:absolute;bottom:calc(env(safe-area-inset-bottom,0px) + 20px);pointer-events:auto;
-  width:76px;height:76px;border-radius:20px;font-size:34px;font-weight:700;background:var(--cream);
-  border:3px solid var(--ink);box-shadow:0 5px 0 var(--ink);display:flex;align-items:center;justify-content:center;touch-action:none;}
-.pad.on{transform:translateY(4px);box-shadow:0 1px 0 var(--ink);background:var(--mustard);}
-#bL{left:calc(env(safe-area-inset-left,0px) + 18px);}
-#bR{right:calc(env(safe-area-inset-right,0px) + 18px);}
-#dpad{position:absolute;right:calc(env(safe-area-inset-right,0px) + 14px);bottom:calc(env(safe-area-inset-bottom,0px) + 14px);
-  width:216px;height:216px;}
-#dpad .pad{position:absolute;width:68px;height:68px;font-size:28px;bottom:auto;}
-#dU{left:74px;top:0;} #dD{left:74px;top:144px;} #dL{left:2px;top:72px;} #dR{left:146px;top:72px;}
+/* 「あぶない」のふち（ゆれが大きいほど赤くなる） */
+#vig{position:absolute;inset:0;opacity:0;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 58%,rgba(229,67,45,0) 48%,rgba(229,67,45,.62) 100%);}
+/* スワイプのヒント（はじめの数秒だけ） */
+#hint{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 28px);transform:translateX(-50%);
+  padding:10px 18px 12px;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:18px;font-weight:700;
+  white-space:nowrap;transition:opacity .4s;}
+#hint.gone{opacity:0;}
+#hint svg{width:200px;height:56px;display:block;}
+#hintHand{animation:slide 1.8s ease-in-out infinite;}
+@keyframes slide{0%,100%{transform:translateX(-46px)}50%{transform:translateX(46px)}}
 
 /* メッセージ */
 #msg{position:absolute;left:50%;top:34%;transform:translate(-50%,-50%);font-size:44px;font-weight:700;white-space:nowrap;
@@ -124,6 +124,7 @@ button:focus-visible{outline:3px solid var(--ketchup);outline-offset:2px;}
 }
 @media (prefers-reduced-motion:reduce){
   #msg.show,.float,.confetti{animation-duration:.01s;}
+  #hintHand{animation:none;}
 }
 </style>
 <script type="importmap">
@@ -137,10 +138,11 @@ button:focus-visible{outline:3px solid var(--ketchup);outline-offset:2px;}
 </script>
 </head>
 <body>
-<!-- build: 2026-10-09 -->
+<!-- build: 2026-10-09b -->
 <canvas id="cv"></canvas>
 
 <div id="hud">
+  <div id="vig"></div>
   <div id="stat" class="card">
     <div><div class="lbl">とくてん</div><div class="val" id="score">0</div></div>
     <div><div class="lbl">たかさ</div><div class="val"><span id="height">0</span><small>cm</small></div></div>
@@ -151,13 +153,12 @@ button:focus-visible{outline:3px solid var(--ketchup);outline-offset:2px;}
     <div id="next" class="card"><div class="lbl">つぎ</div><div id="nextList"></div></div>
     <button id="helpBtn" class="card" aria-label="あそびかたを見る">？</button>
   </div>
-  <button class="pad" id="bL" aria-label="ひだりへ">◀</button>
-  <button class="pad" id="bR" aria-label="みぎへ">▶</button>
-  <div id="dpad" hidden>
-    <button class="pad" id="dU" aria-label="おくへ">▲</button>
-    <button class="pad" id="dL" aria-label="ひだりへ">◀</button>
-    <button class="pad" id="dR" aria-label="みぎへ">▶</button>
-    <button class="pad" id="dD" aria-label="てまえへ">▼</button>
+  <div id="hint" class="card" hidden>
+    <svg viewBox="0 0 200 56" aria-hidden="true">
+      <path d="M22 28h156M22 28l12-10M22 28l12 10M178 28l-12-10M178 28l-12 10" stroke="#3B2216" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      <g id="hintHand"><circle cx="100" cy="28" r="17" fill="#FFD8B8" stroke="#3B2216" stroke-width="3"/></g>
+    </svg>
+    <span id="hintText"></span>
   </div>
   <div id="keep" class="card" hidden><b>キープ！</b><div id="keepBar"><div id="keepFill"></div></div></div>
   <div id="msg"></div>
@@ -172,10 +173,10 @@ button:focus-visible{outline:3px solid var(--ketchup);outline-offset:2px;}
     <div class="how">
       <div id="howFig"></div>
       <ul class="rules">
-        <li><span class="no">1</span><span><ruby>指<rt>ゆび</rt></ruby>を <b id="dirWord"><ruby>左右<rt>さゆう</rt></ruby></b>に うごかすと、おさらが うごくよ。◀ ▶ ボタンでも うごかせるよ。</span></li>
+        <li><span class="no">1</span><span><ruby>画面<rt>がめん</rt></ruby>を <ruby>指<rt>ゆび</rt></ruby>で <b id="dirWord"><ruby>左右<rt>さゆう</rt></ruby></b>に スワイプすると、おさらが ついてくるよ。</span></li>
         <li><span class="no">2</span><span><ruby>上<rt>うえ</rt></ruby>から おちてくる <ruby>具材<rt>ぐざい</rt></ruby>を、いちばん<ruby>上<rt>うえ</rt></ruby>で うけとめよう。<b>かげ</b>が <b style="color:var(--lettuce)">みどり</b>なら うけとめられるよ。</span></li>
         <li><span class="no">3</span><span>まんなかで うけると「ぴったり！」。ずれると タワーが かたむくよ。</span></li>
-        <li><span class="no">4</span><span>いそいで うごかすと タワーが ゆれるよ。<b>くずれたら おわり</b>。</span></li>
+        <li><span class="no">4</span><span>いそいで うごかすと タワーが ゆらゆら ゆれるよ。<b>ふちが あかくなったら あぶない！</b> ゆれが おさまるのを まとう。<b>くずれたら おわり</b>。</span></li>
         <li><span class="no">5</span><span><ruby>上<rt>うえ</rt></ruby>のバンズを のせて、2びょう キープしたら かんせい！</span></li>
       </ul>
     </div>
@@ -238,34 +239,42 @@ const CFG = {
   plateRangeX: 3.0,       // 皿が動ける範囲（左右）
   plateRangeZ: 1.4,       // 皿が動ける範囲（前後）
   plateMaxSpeed: 6.5,
-  plateAccel: 30,
+  plateAccel: 22,
   plateFollow: 12,
-  inertiaCouple: 0.18,    // 皿の加速を具材がどれだけ感じるか（1=本物どおり。小さいほど揺れにくいチート）
+  inertiaCouple: 0.2,     // 皿の加速を具材がどれだけ感じるか（1=本物どおり。小さいほど揺れにくいチート）
   spawnHeight: 3.4,       // 一番上の具材から、どれだけ上に出すか
   spawnRangeZ: 1.1,
   minInertia: 0.05,
-  dampZeta: 0.9,          // 揺れのおさまりやすさ
-  impactKick: 0.3,        // 具材がのった時のゆれ
-  breakAngle: 0.40,       // つなぎ目がこれ以上曲がると…
-  absBreakAngle: 1.3,     // 具材そのものがこれ以上傾いても崩れる
-  breakTime: 0.10,        // …この秒数つづいたら崩れる
+  dampZeta: 0.25,         // 揺れのおさまりやすさ（小さいほど、ゆーらゆーらが長く続く）
+  softenStart: 0.55,      // つなぎ目がここ（崩れる角度に対する割合）をこえると、ばねがやわらかくなって…
+  soften: 0.4,            // …最大でこの割合までやわらかくなる（自分の重さで、ゆっくり倒れはじめる）
+  warnRatio: 0.55,        // あぶない！（ぐらぐら）の合図を出す危険度
+  saveRatio: 0.42,        // これ以下にもどったら「セーフ！」
+  impactKick: 3.0,        // 具材がのった時のゆれ
+  kickI0: 0.5,            // 衝撃を受けとめる「ふんばり」（大きいほど、上の軽い部分がバタバタしない）
+  landWobble: 0.14,       // まんなかにのせても、これくらいはゆれる
+  breakAngle: 0.50,       // つなぎ目がこれ以上曲がると…
+  absBreakAngle: 2.4,     // 具材そのものがこれ以上傾いても崩れる
+  breakTime: 0.25,        // …この秒数つづいたら崩れる（ちょっとこえても、すぐもどれば、セーフ）
+  hardRatio: 2.0,         // 崩れる角度のこの倍まで一気に曲がったら、待たずに「ぼかーん」
   perfectDist: 0.13,      // 「ぴったり！」の判定
   keepTime: 2.0,          // 上のバンズをのせてから完成までキープする秒数
   respawnDelay: 0.45,
   missLife: 1.4,
   collapseTime: 2.0,
+  collapsePush: 0.5,      // くずれた瞬間の「ぼかーん」の勢い
   scorePer: 10, scorePerfect: 5, scoreClear: 50, scoreLife: 20,
   cmPerUnit: 7,
   // 画面・操作
-  buttonSpeed: 4.0,       // ◀▶ボタンを押している間の速さ
+  keySpeed: 4.0,          // 矢印キーを押している間の速さ（パソコン用）
   dragGain: 1.0,          // ゆびの動きと皿の動きの比（1=ゆびと同じだけ動く）
   fov: 42,
-  version: 'v2026-10-09',
+  version: 'v2026-10-09b',
   modes: {
-    easy:    { goal: 6,  fall: 1.3, catchFrac: 0.85, lives: 5, spawnRange: 2.4, jump: 1.6, jumpMin: 0.3, drift: 0,   stiffS: 4.0, kBase: 30 },
-    normal:  { goal: 10, fall: 1.65, catchFrac: 0.72, lives: 3, spawnRange: 2.6, jump: 2.2, jumpMin: 0.5, drift: 0,   stiffS: 3.2, kBase: 24 },
-    hard:    { goal: 12, fall: 2.15, catchFrac: 0.62, lives: 3, spawnRange: 2.8, jump: 2.8, jumpMin: 0.7, drift: 0.8, stiffS: 3.4, kBase: 22 },
-    endless: { goal: 0,  fall: 1.65, catchFrac: 0.72, lives: 3, spawnRange: 2.6, jump: 2.2, jumpMin: 0.5, drift: 0,   stiffS: 3.2, kBase: 24,
+    easy:    { goal: 6,  fall: 1.3, catchFrac: 0.85, lives: 5, spawnRange: 2.4, jump: 1.6, jumpMin: 0.3, drift: 0,   stiffS: 3.8, kBase: 28, couple: 0.8 },
+    normal:  { goal: 10, fall: 1.65, catchFrac: 0.72, lives: 3, spawnRange: 2.6, jump: 2.2, jumpMin: 0.5, drift: 0,   stiffS: 3.5, kBase: 26, couple: 0.5 },
+    hard:    { goal: 12, fall: 2.15, catchFrac: 0.62, lives: 3, spawnRange: 2.8, jump: 2.8, jumpMin: 0.7, drift: 0.8, stiffS: 3.1, kBase: 22, couple: 0.8 },
+    endless: { goal: 0,  fall: 1.65, catchFrac: 0.72, lives: 3, spawnRange: 2.6, jump: 2.2, jumpMin: 0.5, drift: 0,   stiffS: 3.5, kBase: 26, couple: 0.5,
                speedUp: 0.03, speedMax: 1.8, driftUp: 0.05, driftMax: 1.0 },
   },
   // 具材（形 cyl=円柱 / box=四角, 半径 r または w,d, 厚さ h, 重さ m, glue=くっつきやすさ）
@@ -322,6 +331,7 @@ function createGame(rand = Math.random) {
     events: [], t: 0, frames: 0, elapsed: 0,
     spawnT: 0, keepT: 0, collapseT: 0, acc: 0, bag: [], endReason: '',
     plateV: { x: 0, z: 0 }, plateA: { x: 0, z: 0 },
+    danger: 0, peakDanger: 0, warned: false, warnT: 0,
   };
 
   // ---------- 振り子モデル ----------
@@ -356,7 +366,8 @@ function createGame(rand = Math.random) {
   function stepJoints(h) {
     const n = g.pieces.length;
     const G = CFG.gravity, S = g.mode.stiffS;
-    const ax = g.plateA.x * CFG.inertiaCouple, az = g.plateA.z * CFG.inertiaCouple;
+    const cpl = CFG.inertiaCouple * (g.mode.couple ?? 1);
+    const ax = g.plateA.x * cpl, az = g.plateA.z * cpl;
     for (let j = 0; j < n; j++) {
       const J = g.joints[j], pv = J.pivot;
       // つなぎ目ごとに「下の具材から見た向き」で考える（下が傾いても、ここのばねは自分の曲がりだけを支える）
@@ -373,8 +384,13 @@ function createGame(rand = Math.random) {
         I += m * (dx * dx + dy * dy + dz * dz) + m * p.kind.h * p.kind.h / 12;
       }
       const load = G * mdy;
-      const k = S * load + g.mode.kBase * J.glue;
-      const c = CFG.dampZeta * 2 * Math.sqrt(k * I);
+      const k0 = S * load + g.mode.kBase * J.glue;
+      const c = CFG.dampZeta * 2 * Math.sqrt(k0 * I);
+      // 大きく曲がるほど、ばねがやわらかくなる（ふんばりきれなくなって、ゆっくり倒れる）
+      const r = J.tilt / CFG.breakAngle;
+      let sf = 0;
+      if (r > CFG.softenStart) { sf = Math.min(1, (r - CFG.softenStart) / (1 - CFG.softenStart)); sf = sf * sf * (3 - 2 * sf); }
+      const k = k0 * (1 - CFG.soften * sf);
       J.k = k;
       // 外からのトルク：重さによる倒れ（重心が外にあるほど）＋皿の加速の反作用
       const tx = G * mdx - ax * mdy, tz = G * mdz - az * mdy;
@@ -389,11 +405,22 @@ function createGame(rand = Math.random) {
     forwardKinematics();
   }
   function checkBreak(h) {
+    let dmax = 0;
+    for (let j = 0; j < g.joints.length; j++) dmax = Math.max(dmax, g.joints[j].tilt / CFG.breakAngle);
+    g.danger = dmax;
+    if (dmax > g.peakDanger) g.peakDanger = dmax;
+    if (!g.warned && dmax > CFG.warnRatio) { g.warned = true; g.warnT = g.t; g.events.push({ type: 'warn', danger: dmax }); }
+    else if (g.warned && dmax < CFG.saveRatio) {
+      g.warned = false;
+      if (g.peakDanger > 0.8) g.events.push({ type: 'save', peak: g.peakDanger, secs: g.t - g.warnT });
+      g.peakDanger = 0;
+    }
     for (let j = 0; j < g.joints.length; j++) {
       const J = g.joints[j];
       // 具材そのものの傾き（下からの合計）も見る
       g.pieces[j].quat.vmult(UPV, _up);
       J.absTilt = Math.acos(Math.max(-1, Math.min(1, _up.y)));
+      if (J.tilt > CFG.breakAngle * CFG.hardRatio) { collapse(j); return; }
       if (J.tilt > CFG.breakAngle || J.absTilt > CFG.absBreakAngle) { J.over += h; if (J.over > CFG.breakTime) { collapse(j); return; } }
       else J.over = 0;
     }
@@ -418,7 +445,9 @@ function createGame(rand = Math.random) {
     const h = 1 / CFG.physHz;
     const J = g.joints[at];
     const a = Math.max(1e-6, J.tilt);
+    let wx = 0, wz = 0;   // つなぎ目のまがる速さを、上にいくほど足していく
     for (let i = 0; i < g.pieces.length; i++) {
+      wx += g.joints[i].V.z; wz -= g.joints[i].V.x;
       const p = g.pieces[i];
       const b = makeBody(p.kind);
       b.collisionFilterGroup = G_PIECE; b.collisionFilterMask = G_GROUND | G_PIECE | G_PLATE;
@@ -427,15 +456,13 @@ function createGame(rand = Math.random) {
       p.quat.mult(_q, b.quaternion);
       p.pos.vsub(p.prevPos, b.velocity); b.velocity.scale(1 / h, b.velocity);
       // 崩れた所から上は、傾いている向きへ少し押し出す（崩れる手ごたえ）
-      if (i >= at) {
-        b.velocity.x += J.L.x / a * 0.8; b.velocity.z += J.L.z / a * 0.8;
-        b.angularVelocity.set(J.L.z / a * 2, 0, -J.L.x / a * 2);
-      }
+      b.angularVelocity.set(wx, 0, wz);
+      if (i >= at) { b.velocity.x += J.L.x / a * CFG.collapsePush; b.velocity.z += J.L.z / a * CFG.collapsePush; }
       world.addBody(b);
       p.body = b;
     }
     g.state = 'collapsing'; g.collapseT = 0; g.endReason = 'collapse';
-    g.events.push({ type: 'collapse', at });
+    g.events.push({ type: 'collapse', at, warned: g.warned, lead: g.warned ? g.t - g.warnT : 0 });
     if (g.falling) { toMiss(g.falling, false); g.falling = null; }
   }
 
@@ -527,13 +554,15 @@ function createGame(rand = Math.random) {
     p.prevPos.copy(p.pos);
     // のった勢いで、つなぎ目が少しゆれる（ずれてのるほど大きく）
     const v = fallSpeed();
+    // ずれてのるほど大きく、まんなかでも少しだけ「どすん」とゆれる
+    const wobX = (rand() * 2 - 1) * CFG.landWobble, wobZ = g.axis === 'xz' ? (rand() * 2 - 1) * CFG.landWobble : 0;
     for (let j = 0; j < g.joints.length; j++) {
       const Jj = g.joints[j];
       if (!Jj.I) continue;
       (j === 0 ? IDQ : g.pieces[j - 1].quat).conjugate(_pqi);
-      _d.set(p.pos.x - Jj.pivot.x, 0, p.pos.z - Jj.pivot.z); _pqi.vmult(_d, _d);
-      Jj.V.x += CFG.impactKick * kind.m * v * _d.x / Jj.I;
-      Jj.V.z += CFG.impactKick * kind.m * v * _d.z / Jj.I;
+      _d.set(p.pos.x - Jj.pivot.x + wobX, 0, p.pos.z - Jj.pivot.z + wobZ); _pqi.vmult(_d, _d);
+      Jj.V.x += CFG.impactKick * kind.m * v * _d.x / (Jj.I + CFG.kickI0);
+      Jj.V.z += CFG.impactKick * kind.m * v * _d.z / (Jj.I + CFG.kickI0);
     }
     const perfect = dist <= CFG.perfectDist;
     if (f.key !== 'topbun') {
@@ -604,6 +633,7 @@ function createGame(rand = Math.random) {
     g.state = 'play'; g.endReason = ''; g.spawnT = 0.8; g.keepT = 0; g.collapseT = 0; g.acc = 0;
     g.t = 0; g.events = []; g.input.tx = 0; g.input.tz = 0;
     g.plateV.x = g.plateV.z = 0; g.plateA.x = g.plateA.z = 0;
+    g.danger = 0; g.peakDanger = 0; g.warned = false; g.warnT = 0;
     plate.position.set(0, CFG.plateY, 0); plate.velocity.set(0, 0, 0);
   };
 
@@ -752,6 +782,9 @@ const SFX = {
   miss() { tone(500, 0.35, { type: 'sawtooth', to: 160, vol: 0.08 }); },
   collapse() { noise(0.7, { vol: 0.4, freq: 600 }); tone(140, 0.6, { to: 50, vol: 0.25 }); },
   keep() { tone(520, 0.1, { type: 'triangle', vol: 0.12 }); },
+  creak(d) { tone(78 + 70 * d, 0.38, { type: 'sawtooth', to: 52 + 36 * d, vol: 0.04 + 0.07 * d }); noise(0.2, { vol: 0.04 + 0.08 * d, freq: 260 + 300 * d }); },
+  warn() { tone(196, 0.22, { type: 'triangle', vol: 0.12 }); tone(147, 0.32, { type: 'triangle', vol: 0.12, delay: 0.18 }); },
+  save() { [392, 523, 659].forEach((f, i) => tone(f, 0.18, { type: 'triangle', vol: 0.13, delay: i * 0.08 })); },
   clear() { [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.28, { type: 'triangle', vol: 0.16, delay: i * 0.11 })); tone(1568, 0.5, { type: 'sine', vol: 0.1, delay: 0.5 }); },
   over() { [392, 330, 262].forEach((f, i) => tone(f, 0.3, { type: 'triangle', vol: 0.12, delay: i * 0.18 })); },
 };
@@ -915,8 +948,7 @@ const plateGroup = new THREE.Group();
 const guide = new THREE.Group();
 const guideRing = new THREE.Mesh(new THREE.CircleGeometry(1, 40), new THREE.MeshBasicMaterial({ color: '#4FAE3C', transparent: true, opacity: 0.55, depthWrite: false }));
 guideRing.rotation.x = -Math.PI / 2;
-const guideLine = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 1, 6), new THREE.MeshBasicMaterial({ color: '#3B2216', transparent: true, opacity: 0.35 }));
-guide.add(guideRing, guideLine); scene.add(guide);
+guide.add(guideRing); scene.add(guide);
 
 // ---------- 見た目の同期 ----------
 const visuals = new Map();   // ゲーム内のもの → メッシュ
@@ -958,8 +990,6 @@ function syncVisuals(dt) {
     guideRing.scale.setScalar(r * 0.9);
     guideRing.material.color.set(ok ? '#4FAE3C' : '#E5432D');
     guideRing.material.opacity = ok ? 0.6 : 0.4;
-    const len = Math.max(0.01, f.y - f.kind.h / 2 - top.y);
-    guideLine.position.set(f.x, top.y + len / 2, f.z); guideLine.scale.y = len;
   } else guide.visible = false;
   for (const ms of G.missed) {
     const m = visualFor(ms, ms.key);
@@ -1039,7 +1069,8 @@ function confetti() {
 }
 
 // ---------- できごと（音・メッセージ） ----------
-let resultTimer = null, keepBeep = 0;
+let resultTimer = null, keepBeep = 0, lastWarnMsg = -1e9, creakT = 0, vigSm = 0;
+const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 function processEvents() {
   const evs = G.events.splice(0);
   for (const e of evs) {
@@ -1053,8 +1084,13 @@ function processEvents() {
       else floatText(`+${CFG.scorePer}`, top);
     } else if (e.type === 'miss') {
       SFX.miss(); showMsg(G.lives > 0 ? 'おしい！' : 'ライフが なくなった');
+    } else if (e.type === 'warn') {
+      const now = performance.now();
+      if (now - lastWarnMsg > 3500) { lastWarnMsg = now; SFX.warn(); showMsg('ぐらぐら…'); }
+    } else if (e.type === 'save') {
+      SFX.save(); showMsg('セーフ！');
     } else if (e.type === 'collapse') {
-      SFX.collapse(); showMsg('くずれた！');
+      SFX.collapse(); showMsg(e.lead < 0.5 ? 'ぼかーん！' : 'くずれた…');
     } else if (e.type === 'clear') {
       SFX.clear(); showMsg('かんせい！'); confetti();
       scheduleResult(1.6);
@@ -1066,6 +1102,18 @@ function processEvents() {
     const sec = Math.floor(G.keepT * 2);
     if (sec > keepBeep) { keepBeep = sec; SFX.keep(); }
   }
+}
+// ゆれの危険度：ふちが赤くなる・きしみ音（ゆれが大きいほど、ひんぱんに大きく）
+function updateDanger(dt) {
+  const active = !paused && (G.state === 'play' || G.state === 'keep');
+  const target = active ? THREE.MathUtils.smoothstep(G.danger, 0.45, 1.0) : 0;
+  vigSm += (target - vigSm) * Math.min(1, dt * 6);
+  const pulse = reduceMotion ? 1 : 0.8 + 0.2 * Math.sin(hooks.elapsed * (6 + 8 * vigSm));
+  $('vig').style.opacity = vigSm < 0.01 ? '0' : (vigSm * pulse).toFixed(3);
+  if (active && G.danger > 0.5) {
+    creakT -= dt;
+    if (creakT <= 0) { SFX.creak(Math.min(1, G.danger)); creakT = 0.95 - 0.6 * Math.min(1, (G.danger - 0.5) / 0.5); }
+  } else creakT = Math.min(creakT, 0.25);
 }
 function scheduleResult(sec) {
   clearTimeout(resultTimer);
@@ -1105,13 +1153,23 @@ function openHelp(asPause) {
   if (asPause) $('howFig').innerHTML = howFigure(G.axis);
   $('help').hidden = false; paused = true; releaseAll();
 }
+let hintTimer = null;
+function showHint(xz) {
+  const h = $('hint');
+  $('hintText').innerHTML = xz ? '<ruby>指<rt>ゆび</rt></ruby>を すべらせて おさらを うごかそう' : '<ruby>指<rt>ゆび</rt></ruby>を <ruby>左右<rt>さゆう</rt></ruby>に すべらせよう';
+  h.classList.remove('gone'); h.hidden = false;
+  clearTimeout(hintTimer); hintTimer = setTimeout(hideHint, 7000);
+}
+function hideHint() {
+  const h = $('hint'); h.classList.add('gone'); clearTimeout(hintTimer);
+  hintTimer = setTimeout(() => { h.hidden = true; }, 450);
+}
 function startGame(mode, axis) {
   clearTimeout(resultTimer);
   G.reset(mode, axis);
   input.tx = 0; input.tz = 0;
   $('result').hidden = true; $('help').hidden = true;
-  const xz = axis === 'xz';
-  $('dpad').hidden = !xz; $('bL').hidden = xz; $('bR').hidden = xz;
+  showHint(axis === 'xz');
   $('countLbl').textContent = 'つんだ かず';
   cam.init = false; paused = false; last = performance.now();
   for (const k in hudCache) delete hudCache[k];
@@ -1134,7 +1192,7 @@ function toMenu() {
   refreshChoice(); openHelp(false);
 }
 
-// ---------- 操作：ゆびでドラッグ／ボタン／キーボード ----------
+// ---------- 操作：画面を指でスワイプ（パソコンではドラッグ・矢印キー） ----------
 const input = { tx: 0, tz: 0 };
 const held = { L: 0, R: 0, U: 0, D: 0 };
 function clampInput() {
@@ -1153,6 +1211,7 @@ canvas.addEventListener('pointermove', (e) => {
   // 画面の1ピクセルが、おさらの位置で何マスぶんか
   const dist = camera.position.distanceTo(plateGroup.position);
   const perPx = 2 * dist * Math.tan(THREE.MathUtils.degToRad(CFG.fov / 2)) / window.innerHeight * CFG.dragGain;
+  if (Math.abs(e.clientX - drag.x) + Math.abs(e.clientY - drag.y) > 0) hideHint();
   input.tx += (e.clientX - drag.x) * perPx;
   if (G.axis === 'xz') input.tz += (e.clientY - drag.y) * perPx * 1.4;
   drag.x = e.clientX; drag.y = e.clientY;
@@ -1162,24 +1221,15 @@ const endDrag = (e) => { if (drag && e.pointerId === drag.id) drag = null; };
 canvas.addEventListener('pointerup', endDrag);
 canvas.addEventListener('pointercancel', endDrag);
 
-function bindPad(id, dir) {
-  const el = $(id);
-  const on = (e) => { e.preventDefault(); audioInit(); held[dir] = 1; el.classList.add('on'); try { el.setPointerCapture(e.pointerId); } catch (_) {} };
-  const off = () => { held[dir] = 0; el.classList.remove('on'); };
-  el.addEventListener('pointerdown', on);
-  el.addEventListener('pointerup', off); el.addEventListener('pointercancel', off); el.addEventListener('lostpointercapture', off);
-}
-bindPad('bL', 'L'); bindPad('bR', 'R'); bindPad('dL', 'L'); bindPad('dR', 'R'); bindPad('dU', 'U'); bindPad('dD', 'D');
-function releaseAll() { for (const k in held) held[k] = 0; document.querySelectorAll('.pad.on').forEach((b) => b.classList.remove('on')); drag = null; }
+function releaseAll() { for (const k in held) held[k] = 0; drag = null; }
 const KEYS = { ArrowLeft: 'L', ArrowRight: 'R', ArrowUp: 'U', ArrowDown: 'D', a: 'L', d: 'R', w: 'U', s: 'D' };
-window.addEventListener('keydown', (e) => { if (KEYS[e.key]) { held[KEYS[e.key]] = 1; e.preventDefault(); } });
+window.addEventListener('keydown', (e) => { if (KEYS[e.key]) { held[KEYS[e.key]] = 1; hideHint(); e.preventDefault(); } });
 window.addEventListener('keyup', (e) => { if (KEYS[e.key]) held[KEYS[e.key]] = 0; });
 function applyHeld(dt) {
   if (held.L || held.R) {
-    // ボタンを押している間は「今のおさらの位置」から動かす（はなすとすぐ止まる）
-    input.tx = G.plate.position.x + (held.R - held.L) * CFG.buttonSpeed / CFG.plateFollow;
+    input.tx = G.plate.position.x + (held.R - held.L) * CFG.keySpeed / CFG.plateFollow;
   }
-  if (G.axis === 'xz' && (held.U || held.D)) input.tz = G.plate.position.z + (held.D - held.U) * CFG.buttonSpeed / CFG.plateFollow;
+  if (G.axis === 'xz' && (held.U || held.D)) input.tz = G.plate.position.z + (held.D - held.U) * CFG.keySpeed / CFG.plateFollow;
   clampInput();
 }
 
@@ -1196,6 +1246,7 @@ function frame(now) {
     G.step(dt);
   }
   processEvents();
+  updateDanger(dt);
   syncVisuals(dt);
   updateCamera(dt);
   updateHUD();
@@ -1227,7 +1278,7 @@ window.__game = window.__G = {
     getState() {
       return { state: G.state, mode: G.modeKey, axis: G.axis, score: G.score, count: G.count, lives: G.lives,
         height: Math.round(G.height()), plateX: G.plate.position.x, plateZ: G.plate.position.z,
-        maxTilt: G.maxTilt(), falling: G.falling ? { key: G.falling.key, x: G.falling.x, y: G.falling.y, z: G.falling.z } : null,
+        maxTilt: G.maxTilt(), danger: G.danger, falling: G.falling ? { key: G.falling.key, x: G.falling.x, y: G.falling.y, z: G.falling.z } : null,
         paused, helpOpen: !$('help').hidden, resultOpen: !$('result').hidden };
     },
     setTarget(x, z = 0) { input.tx = x; input.tz = z; clampInput(); },
