@@ -142,7 +142,7 @@ button:focus-visible{outline:3px solid var(--ketchup);outline-offset:2px;}
 </script>
 </head>
 <body>
-<!-- build: 2026-10-10b -->
+<!-- build: 2026-10-10c -->
 <canvas id="cv"></canvas>
 
 <div id="hud">
@@ -182,9 +182,9 @@ button:focus-visible{outline:3px solid var(--ketchup);outline-offset:2px;}
       <div id="howFig"></div>
       <ul class="rules">
         <li><span class="no">1</span><span><ruby>画面<rt>がめん</rt></ruby>を <ruby>指<rt>ゆび</rt></ruby>で <b id="dirWord"><ruby>左右<rt>さゆう</rt></ruby></b>に スワイプすると、おさらが ついてくるよ。</span></li>
-        <li><span class="no">2</span><span><ruby>上<rt>うえ</rt></ruby>から おちてくる <ruby>具材<rt>ぐざい</rt></ruby>を、いちばん<ruby>上<rt>うえ</rt></ruby>で うけとめよう。<b>かげ</b>が <b style="color:var(--lettuce)">みどり</b>なら うけとめられるよ。</span></li>
+        <li><span class="no">2</span><span><ruby>上<rt>うえ</rt></ruby>から おちてくる <ruby>具材<rt>ぐざい</rt></ruby>を、いちばん<ruby>上<rt>うえ</rt></ruby>で うけとめよう。<b>かげ</b>を みて、おちる ところを よそうしよう。</span></li>
         <li><span class="no">3</span><span>まんなかで うけると「ぴったり！」。ずれると タワーが かたむくよ。</span></li>
-        <li><span class="no">4</span><span>いそいで うごかすと タワーが ゆらゆら ゆれるよ。<b>ふちが あかくなったら あぶない！</b> ゆれが おさまるのを まとう。<b>くずれたら おわり</b>。</span></li>
+        <li><span class="no">4</span><span>いそいで うごかすと タワーが ゆらゆら ゆれるよ。<b>ふちが あかくなったら あぶない！</b> かたむいた <b>はんたいがわ</b>に のせると もどるよ。<b>くずれたら おわり</b>。</span></li>
         <li><span class="no">5</span><span><ruby>上<rt>うえ</rt></ruby>のバンズを のせて、2びょう キープしたら かんせい！</span></li>
       </ul>
     </div>
@@ -194,7 +194,7 @@ button:focus-visible{outline:3px solid var(--ketchup);outline-offset:2px;}
       <div class="row" id="modeRow">
         <button class="opt" data-mode="easy">かんたん<small>6こ・ライフ5</small></button>
         <button class="opt" data-mode="normal">ふつう<small>10こ・ライフ3</small></button>
-        <button class="opt" data-mode="hard">むずかしい<small>11こ・ゆれる</small></button>
+        <button class="opt" data-mode="hard">むずかしい<small>11こ・ななめ</small></button>
         <button class="opt" data-mode="endless">エンドレス<small>どこまでも</small></button>
       </div>
       <h2>おさらの うごき</h2>
@@ -264,7 +264,11 @@ const CFG = {
   breakAngle: 0.50,       // つなぎ目がこれ以上曲がると…
   absBreakAngle: 3.0,
   beeps: 6,               // 「ピッ」が この回数ならんだら ぼかーん（breakTime ÷ 回数 びょうごと）
-  overDamp: 3.0,          // 限界をこえたあと、ゆっくり倒れていく（大きいほどゆっくり）     // 具材そのものがこれ以上傾いても崩れる
+  overDamp: 3.0,
+  counterGain: 1.0,       // かたむいた反対がわに のせると、かたむきを これだけ もどす（1で まっすぐ）
+  counterRate: 2.5,       // もどる はやさ（ラジアン／びょう）
+  counterMin: 0.12,       // これより かたむいている つなぎ目を もどす
+  counterFull: 0.55,      // バンズの はんけいの この わりあい ずらせば、ききめ さいだい          // 限界をこえたあと、ゆっくり倒れていく（大きいほどゆっくり）     // 具材そのものがこれ以上傾いても崩れる
   breakTime: 4.8,        // …この秒数つづいたら崩れる（ちょっとこえても、すぐもどれば、セーフ）
   hardRatio: 5.0,         // 崩れる角度のこの倍まで一気に曲がったら、待たずに「ぼかーん」
   perfectDist: 0.13,      // 「ぴったり！」の判定
@@ -279,7 +283,7 @@ const CFG = {
   keySpeed: 4.0,          // 矢印キーを押している間の速さ（パソコン用）
   dragGain: 1.0,          // ゆびの動きと皿の動きの比（1=ゆびと同じだけ動く）
   fov: 42,
-  version: 'v2026-10-10b',
+  version: 'v2026-10-10c',
   modes: {
     easy:    { goal: 6,  fall: 1.3, catchFrac: 0.85, lives: 5, spawnRange: 2.4, jump: 1.6, jumpMin: 0.3, drift: 0,   stiffS: 3.8, kBase: 28, couple: 0.8 },
     normal:  { goal: 10, fall: 1.65, catchFrac: 0.72, lives: 3, spawnRange: 2.6, jump: 2.2, jumpMin: 0.5, drift: 0,   stiffS: 3.5, kBase: 26, couple: 0.5 },
@@ -411,6 +415,11 @@ function createGame(rand = Math.random) {
       J.V.x = (J.V.x + h * (tx / I - k / I * J.L.x)) / den;
       J.V.z = (J.V.z + h * (tz / I - k / I * J.L.z)) / den;
       J.L.x += h * J.V.x; J.L.z += h * J.V.z;
+      if (J.pushX || J.pushZ) {   // 「バランス！」で、ぐぐっと もどる
+        const pm = Math.hypot(J.pushX, J.pushZ), st = Math.min(pm, CFG.counterRate * h) / pm;
+        J.L.x += J.pushX * st; J.L.z += J.pushZ * st; J.pushX -= J.pushX * st; J.pushZ -= J.pushZ * st;
+        if (pm * (1 - st) < 1e-4) { J.pushX = 0; J.pushZ = 0; }
+      }
       J.tilt = Math.hypot(J.L.x, J.L.z);
       J.I = I;
     }
@@ -577,8 +586,31 @@ function createGame(rand = Math.random) {
     const d = Math.hypot(lx, lz), lim = t.r * 0.95;
     if (d > lim) { lx *= lim / d; lz *= lim / d; }
     const dist = Math.hypot(lx, lz);
+    // かたむいている時に、反対がわに のせると「バランス！」で もどる
+    // 「反対がわ」は 見たままの向き（いちばん上の面の まんなかから、どっちに ずらしたか）で決める
+    const cb = new Array(g.joints.length).fill(0); let cbMax = 0;
+    const wox = f.x - ts.x, woz = g.axis === 'xz' ? f.z - ts.z : 0, wd = Math.hypot(wox, woz);
+    if (wd > 0.04) {
+      const ox = wox / wd, oz = woz / wd, sOff = Math.min(1, wd / (lim * CFG.counterFull));
+      for (let j = 0; j < g.joints.length; j++) {
+        const Jj = g.joints[j];
+        if (Jj.tilt < CFG.counterMin) continue;
+        // このつなぎ目より上の重さが、どっちへ たおそうとしているか（見たままの向き）
+        let tx = 0, tz = 0;
+        for (let i = j; i < g.pieces.length; i++) { const q = g.pieces[i]; tx += q.kind.m * (q.pos.x - Jj.pivot.x); tz += q.kind.m * (q.pos.z - Jj.pivot.z); }
+        const tm = Math.hypot(tx, tz); if (tm < 1e-6) continue;
+        const dot = -(tx * ox + tz * oz) / tm;
+        if (dot <= 0.3) continue;
+        const sc = Math.min(1, dot * sOff);
+        cb[j] = sc; cbMax = Math.max(cbMax, sc);
+        Jj.pushX = (Jj.pushX || 0) - Jj.L.x * sc * CFG.counterGain;
+        Jj.pushZ = (Jj.pushZ || 0) - Jj.L.z * sc * CFG.counterGain;
+        Jj.V.x *= 1 - sc; Jj.V.z *= 1 - sc;
+      }
+    }
+    if (cbMax > 0.2) g.events.push({ type: 'balance', s: cbMax });
     const p = { key: f.key, kind, pos: new CANNON.Vec3(), prevPos: new CANNON.Vec3(), quat: new CANNON.Quaternion(), yaw: f.spin, body: null, offset: dist };
-    const J = { off: { x: lx, z: lz }, L: { x: 0, z: 0 }, V: { x: 0, z: 0 }, pivot: new CANNON.Vec3(), glue: kind.glue, tilt: 0, over: 0, k: 0, I: 0 };
+    const J = { off: { x: lx, z: lz }, L: { x: 0, z: 0 }, V: { x: 0, z: 0 }, pivot: new CANNON.Vec3(), glue: kind.glue, tilt: 0, over: 0, pushX: 0, pushZ: 0, k: 0, I: 0 };
     g.pieces.push(p); g.joints.push(J);
     forwardKinematics();
     p.prevPos.copy(p.pos);
@@ -591,8 +623,8 @@ function createGame(rand = Math.random) {
       if (!Jj.I) continue;
       (j === 0 ? IDQ : g.pieces[j - 1].quat).conjugate(_pqi);
       _d.set(p.pos.x - Jj.pivot.x + wobX, 0, p.pos.z - Jj.pivot.z + wobZ); _pqi.vmult(_d, _d);
-      Jj.V.x += CFG.impactKick * kind.m * v * _d.x / (Jj.I + CFG.kickI0);
-      Jj.V.z += CFG.impactKick * kind.m * v * _d.z / (Jj.I + CFG.kickI0);
+      Jj.V.x += (1 - (cb[j] || 0)) * CFG.impactKick * kind.m * v * _d.x / (Jj.I + CFG.kickI0);
+      Jj.V.z += (1 - (cb[j] || 0)) * CFG.impactKick * kind.m * v * _d.z / (Jj.I + CFG.kickI0);
     }
     const perfect = dist <= CFG.perfectDist;
     if (f.key !== 'topbun') {
@@ -759,9 +791,8 @@ function howFigure(axis) {
     <rect x="0" y="0" width="320" height="250" rx="16" fill="#BFE8E1"/>
     <rect x="0" y="150" width="320" height="100" rx="0" fill="#F2D9B5"/>
     <g transform="translate(118 14)"><svg width="84" height="52" viewBox="0 0 64 40">${ICON.patty}</svg></g>
-    <path d="M160 64v40" stroke="#3B2216" stroke-width="3" stroke-dasharray="6 6"/>
     <g transform="translate(110 88)"><svg width="100" height="62" viewBox="0 0 64 40">${ICON.lettuce}</svg></g>
-    <ellipse cx="160" cy="111" rx="34" ry="7" fill="#4FAE3C" opacity=".75"/>
+    <ellipse cx="160" cy="111" rx="30" ry="6" fill="#3B2216" opacity=".28"/>
     <g transform="translate(110 104)"><svg width="100" height="62" viewBox="0 0 64 40">${ICON.bun}</svg></g>
     <ellipse cx="160" cy="153" rx="70" ry="10" fill="#fff" stroke="#3B2216" stroke-width="2"/>
     <circle cx="200" cy="187" r="20" fill="#FFD8B8" stroke="#3B2216" stroke-width="3"/>
@@ -769,7 +800,7 @@ function howFigure(axis) {
     <path d="M168 187h-48M120 187l10-8M120 187l10 8M232 187h48M280 187l-10-8M280 187l-10 8" stroke="#3B2216" stroke-width="5" stroke-linecap="round" fill="none"/>
     ${arrowsZ}
     <text x="16" y="34" font-size="14" font-weight="700" fill="#3B2216" font-family="BIZ UDPGothic, sans-serif">おちてくる</text>
-    <text x="16" y="118" font-size="14" font-weight="700" fill="#2F7A22" font-family="BIZ UDPGothic, sans-serif">かげ</text>
+    <text x="16" y="118" font-size="14" font-weight="700" fill="#3B2216" font-family="BIZ UDPGothic, sans-serif">かげ</text>
   </svg>`;
 }
 
@@ -813,6 +844,7 @@ const SFX = {
   keep() { tone(520, 0.1, { type: 'triangle', vol: 0.12 }); },
   creak(d) { tone(78 + 70 * d, 0.38, { type: 'sawtooth', to: 52 + 36 * d, vol: 0.04 + 0.07 * d }); noise(0.2, { vol: 0.04 + 0.08 * d, freq: 260 + 300 * d }); },
   warn() { tone(196, 0.22, { type: 'triangle', vol: 0.12 }); tone(147, 0.32, { type: 'triangle', vol: 0.12, delay: 0.18 }); },
+  balance() { tone(330, 0.12, { type: 'triangle', vol: 0.14, to: 520 }); tone(660, 0.2, { type: 'triangle', vol: 0.12, delay: 0.1 }); },
   beep(n) { tone(740 + 60 * n, 0.09, { type: 'square', vol: 0.07 + 0.012 * n }); },
   save() { [392, 523, 659].forEach((f, i) => tone(f, 0.18, { type: 'triangle', vol: 0.13, delay: i * 0.08 })); },
   clear() { [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.28, { type: 'triangle', vol: 0.16, delay: i * 0.11 })); tone(1568, 0.5, { type: 'sine', vol: 0.1, delay: 0.5 }); },
@@ -1103,6 +1135,8 @@ function processEvents() {
     } else if (e.type === 'warn') {
       const now = performance.now();
       if (now - lastWarnMsg > 3500) { lastWarnMsg = now; SFX.warn(); showMsg('ぐらぐら…'); }
+    } else if (e.type === 'balance') {
+      SFX.balance(); showMsg('バランス！');
     } else if (e.type === 'beep') {
       SFX.beep(e.n);
     } else if (e.type === 'save') {
