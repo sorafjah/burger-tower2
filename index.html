@@ -142,7 +142,7 @@ button:focus-visible{outline:3px solid var(--ketchup);outline-offset:2px;}
 </script>
 </head>
 <body>
-<!-- build: 2026-10-10c -->
+<!-- build: 2026-10-11a -->
 <canvas id="cv"></canvas>
 
 <div id="hud">
@@ -185,7 +185,7 @@ button:focus-visible{outline:3px solid var(--ketchup);outline-offset:2px;}
         <li><span class="no">2</span><span><ruby>上<rt>うえ</rt></ruby>から おちてくる <ruby>具材<rt>ぐざい</rt></ruby>を、いちばん<ruby>上<rt>うえ</rt></ruby>で うけとめよう。<b>かげ</b>を みて、おちる ところを よそうしよう。</span></li>
         <li><span class="no">3</span><span>まんなかで うけると「ぴったり！」。ずれると タワーが かたむくよ。</span></li>
         <li><span class="no">4</span><span>いそいで うごかすと タワーが ゆらゆら ゆれるよ。<b>ふちが あかくなったら あぶない！</b> かたむいた <b>はんたいがわ</b>に のせると もどるよ。<b>くずれたら おわり</b>。</span></li>
-        <li><span class="no">5</span><span><ruby>上<rt>うえ</rt></ruby>のバンズを のせて、2びょう キープしたら かんせい！</span></li>
+        <li><span class="no">5</span><span><ruby>上<rt>うえ</rt></ruby>のバンズを のせて、ピッと 8かい なるまで キープしたら かんせい！</span></li>
       </ul>
     </div>
     <div class="items" id="itemList"></div>
@@ -272,7 +272,7 @@ const CFG = {
   breakTime: 4.8,        // …この秒数つづいたら崩れる（ちょっとこえても、すぐもどれば、セーフ）
   hardRatio: 5.0,         // 崩れる角度のこの倍まで一気に曲がったら、待たずに「ぼかーん」
   perfectDist: 0.13,      // 「ぴったり！」の判定
-  keepTime: 2.0,          // 上のバンズをのせてから完成までキープする秒数
+  keepTime: 4.5,          // 上のバンズをのせてから完成までキープする秒数
   respawnDelay: 0.45,
   missLife: 1.4,
   collapseTime: 2.0,
@@ -283,7 +283,7 @@ const CFG = {
   keySpeed: 4.0,          // 矢印キーを押している間の速さ（パソコン用）
   dragGain: 1.0,          // ゆびの動きと皿の動きの比（1=ゆびと同じだけ動く）
   fov: 42,
-  version: 'v2026-10-10c',
+  version: 'v2026-10-11a',
   modes: {
     easy:    { goal: 6,  fall: 1.3, catchFrac: 0.85, lives: 5, spawnRange: 2.4, jump: 1.6, jumpMin: 0.3, drift: 0,   stiffS: 3.8, kBase: 28, couple: 0.8 },
     normal:  { goal: 10, fall: 1.65, catchFrac: 0.72, lives: 3, spawnRange: 2.6, jump: 2.2, jumpMin: 0.5, drift: 0,   stiffS: 3.5, kBase: 26, couple: 0.5 },
