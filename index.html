@@ -142,7 +142,7 @@ button:focus-visible{outline:3px solid var(--ketchup);outline-offset:2px;}
 </script>
 </head>
 <body>
-<!-- build: 2026-10-10a -->
+<!-- build: 2026-10-10b -->
 <canvas id="cv"></canvas>
 
 <div id="hud">
@@ -194,7 +194,7 @@ button:focus-visible{outline:3px solid var(--ketchup);outline-offset:2px;}
       <div class="row" id="modeRow">
         <button class="opt" data-mode="easy">かんたん<small>6こ・ライフ5</small></button>
         <button class="opt" data-mode="normal">ふつう<small>10こ・ライフ3</small></button>
-        <button class="opt" data-mode="hard">むずかしい<small>12こ・ゆれる</small></button>
+        <button class="opt" data-mode="hard">むずかしい<small>11こ・ゆれる</small></button>
         <button class="opt" data-mode="endless">エンドレス<small>どこまでも</small></button>
       </div>
       <h2>おさらの うごき</h2>
@@ -262,9 +262,11 @@ const CFG = {
   kickI0: 0.5,            // 衝撃を受けとめる「ふんばり」（大きいほど、上の軽い部分がバタバタしない）
   landWobble: 0.14,       // まんなかにのせても、これくらいはゆれる
   breakAngle: 0.50,       // つなぎ目がこれ以上曲がると…
-  absBreakAngle: 3.0,     // 具材そのものがこれ以上傾いても崩れる
-  breakTime: 1.5,        // …この秒数つづいたら崩れる（ちょっとこえても、すぐもどれば、セーフ）
-  hardRatio: 3.5,         // 崩れる角度のこの倍まで一気に曲がったら、待たずに「ぼかーん」
+  absBreakAngle: 3.0,
+  beeps: 6,               // 「ピッ」が この回数ならんだら ぼかーん（breakTime ÷ 回数 びょうごと）
+  overDamp: 3.0,          // 限界をこえたあと、ゆっくり倒れていく（大きいほどゆっくり）     // 具材そのものがこれ以上傾いても崩れる
+  breakTime: 4.8,        // …この秒数つづいたら崩れる（ちょっとこえても、すぐもどれば、セーフ）
+  hardRatio: 5.0,         // 崩れる角度のこの倍まで一気に曲がったら、待たずに「ぼかーん」
   perfectDist: 0.13,      // 「ぴったり！」の判定
   keepTime: 2.0,          // 上のバンズをのせてから完成までキープする秒数
   respawnDelay: 0.45,
@@ -277,13 +279,13 @@ const CFG = {
   keySpeed: 4.0,          // 矢印キーを押している間の速さ（パソコン用）
   dragGain: 1.0,          // ゆびの動きと皿の動きの比（1=ゆびと同じだけ動く）
   fov: 42,
-  version: 'v2026-10-10a',
+  version: 'v2026-10-10b',
   modes: {
     easy:    { goal: 6,  fall: 1.3, catchFrac: 0.85, lives: 5, spawnRange: 2.4, jump: 1.6, jumpMin: 0.3, drift: 0,   stiffS: 3.8, kBase: 28, couple: 0.8 },
     normal:  { goal: 10, fall: 1.65, catchFrac: 0.72, lives: 3, spawnRange: 2.6, jump: 2.2, jumpMin: 0.5, drift: 0,   stiffS: 3.5, kBase: 26, couple: 0.5 },
-    hard:    { goal: 12, fall: 2.15, catchFrac: 0.62, lives: 3, spawnRange: 2.8, jump: 2.8, jumpMin: 0.7, drift: 0.8, stiffS: 3.1, kBase: 22, couple: 0.8, swayI: 2.5 },
+    hard:    { goal: 11, fall: 1.8, catchFrac: 0.68, lives: 3, spawnRange: 2.8, jump: 2.6, jumpMin: 0.6, drift: 0.3, stiffS: 3.5, kBase: 26, couple: 0.5, swayI: 2.5 },
     endless: { goal: 0,  fall: 1.65, catchFrac: 0.72, lives: 3, spawnRange: 2.6, jump: 2.2, jumpMin: 0.5, drift: 0,   stiffS: 3.5, kBase: 26, couple: 0.5,
-               speedUp: 0.03, speedMax: 1.8, driftUp: 0.05, driftMax: 1.0 },
+               speedUp: 0.03, speedMax: 1.8, driftUp: 0.05, driftMax: 0.7 },
   },
   // 具材（形 cyl=円柱 / box=四角, 半径 r または w,d, 厚さ h, 重さ m, glue=くっつきやすさ）
   kinds: {
@@ -337,7 +339,7 @@ function createGame(rand = Math.random) {
     lives: 0, score: 0, count: 0, perfects: 0, bestHeight: 0,
     input: { tx: 0, tz: 0 },
     events: [], t: 0, frames: 0, elapsed: 0,
-    spawnT: 0, keepT: 0, collapseT: 0, acc: 0, bag: [], endReason: '',
+    beepN: 0, overT: 0, spawnT: 0, keepT: 0, collapseT: 0, acc: 0, bag: [], endReason: '',
     plateV: { x: 0, z: 0 }, plateA: { x: 0, z: 0 },
     danger: 0, peakDanger: 0, warned: false, warnT: 0,
   };
@@ -394,7 +396,8 @@ function createGame(rand = Math.random) {
       I *= (g.mode.swayI ?? 1);   // 大きいほど、ゆれが ゆっくりになる（かたむく量は同じ）
       const load = G * mdy;
       const k0 = S * load + g.mode.kBase * J.glue;
-      const c = CFG.dampZeta * 2 * Math.sqrt(k0 * I);
+      let c = CFG.dampZeta * 2 * Math.sqrt(k0 * I);
+      if (J.tilt > CFG.breakAngle) c *= 1 + CFG.overDamp;
       // 大きく曲がるほど、ばねがやわらかくなる（ふんばりきれなくなって、ゆっくり倒れる）
       const r = J.tilt / CFG.breakAngle;
       let sf = 0;
@@ -433,6 +436,13 @@ function createGame(rand = Math.random) {
       if (J.tilt > CFG.breakAngle || J.absTilt > CFG.absBreakAngle) { J.over += h; if (J.over > CFG.breakTime) { collapse(j); return; } }
       else J.over = 0;
     }
+    // 限界をこえている時間に合わせて「ピッ」（beeps 回めで ぼかーん）
+    let ov = 0;
+    for (let j = 0; j < g.joints.length; j++) ov = Math.max(ov, g.joints[j].over);
+    g.overT = ov;
+    const n = Math.min(CFG.beeps, Math.floor(ov / (CFG.breakTime / CFG.beeps)) + (ov > 0 ? 1 : 0));
+    if (n > g.beepN) { g.beepN = n; g.events.push({ type: 'beep', n, of: CFG.beeps }); }
+    else if (ov === 0) g.beepN = 0;
   }
 
   function makeBody(kind) {
@@ -524,7 +534,18 @@ function createGame(rand = Math.random) {
     if (Math.abs(x) > m.spawnRange) x = top.x - sgn * (m.jumpMin + rand() * (m.jump - m.jumpMin));
     x = Math.max(-m.spawnRange, Math.min(m.spawnRange, x));
     const z = g.axis === 'xz' ? Math.max(-CFG.spawnRangeZ, Math.min(CFG.spawnRangeZ, top.z + (rand() * 2 - 1) * CFG.spawnRangeZ)) : 0;
-    g.falling = { key, kind: CFG.kinds[key], x, z, y: top.y + CFG.spawnHeight, x0: x,
+    // ななめに落ちるときは、一定の速さでまっすぐ（行き先が読める）。着地点が今のタワーの近くになるように出す
+    let vx = 0;
+    const da = driftAmp();
+    if (da) {
+      vx = (rand() < 0.5 ? -1 : 1) * da;
+      const T = (CFG.spawnHeight - CFG.kinds[key].h / 2) / fallSpeed();
+      let sx = x - vx * T;
+      if (Math.abs(sx) > CFG.plateRangeX) { vx = -vx; sx = x - vx * T; }
+      if (Math.abs(sx) > CFG.plateRangeX) { vx = 0; sx = x; }
+      x = sx;
+    }
+    g.falling = { key, kind: CFG.kinds[key], x, z, y: top.y + CFG.spawnHeight, x0: x, vx,
       phase: rand() * Math.PI * 2, spin: rand() * Math.PI * 2, age: 0 };
     g.events.push({ type: 'spawn', key });
   }
@@ -588,8 +609,7 @@ function createGame(rand = Math.random) {
     if (!f) return;
     f.age += dt;
     f.y -= fallSpeed() * dt;
-    const a = driftAmp();
-    if (a) f.x = Math.max(-CFG.plateRangeX, Math.min(CFG.plateRangeX, f.x0 + (Math.sin(f.age * 1.6 + f.phase) - Math.sin(f.phase)) * a));
+    if (f.vx) f.x = f.x0 + f.vx * f.age;
     f.spin += dt * 1.2;
     const top = topSurface();
     const t = topInfo();
@@ -642,7 +662,7 @@ function createGame(rand = Math.random) {
     g.state = 'play'; g.endReason = ''; g.spawnT = 0.8; g.keepT = 0; g.collapseT = 0; g.acc = 0;
     g.t = 0; g.events = []; g.input.tx = 0; g.input.tz = 0;
     g.plateV.x = g.plateV.z = 0; g.plateA.x = g.plateA.z = 0;
-    g.danger = 0; g.peakDanger = 0; g.warned = false; g.warnT = 0;
+    g.danger = 0; g.peakDanger = 0; g.warned = false; g.warnT = 0; g.beepN = 0; g.overT = 0;
     plate.position.set(0, CFG.plateY, 0); plate.velocity.set(0, 0, 0);
   };
 
@@ -793,6 +813,7 @@ const SFX = {
   keep() { tone(520, 0.1, { type: 'triangle', vol: 0.12 }); },
   creak(d) { tone(78 + 70 * d, 0.38, { type: 'sawtooth', to: 52 + 36 * d, vol: 0.04 + 0.07 * d }); noise(0.2, { vol: 0.04 + 0.08 * d, freq: 260 + 300 * d }); },
   warn() { tone(196, 0.22, { type: 'triangle', vol: 0.12 }); tone(147, 0.32, { type: 'triangle', vol: 0.12, delay: 0.18 }); },
+  beep(n) { tone(740 + 60 * n, 0.09, { type: 'square', vol: 0.07 + 0.012 * n }); },
   save() { [392, 523, 659].forEach((f, i) => tone(f, 0.18, { type: 'triangle', vol: 0.13, delay: i * 0.08 })); },
   clear() { [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.28, { type: 'triangle', vol: 0.16, delay: i * 0.11 })); tone(1568, 0.5, { type: 'sine', vol: 0.1, delay: 0.5 }); },
   over() { [392, 330, 262].forEach((f, i) => tone(f, 0.3, { type: 'triangle', vol: 0.12, delay: i * 0.18 })); },
@@ -1082,10 +1103,12 @@ function processEvents() {
     } else if (e.type === 'warn') {
       const now = performance.now();
       if (now - lastWarnMsg > 3500) { lastWarnMsg = now; SFX.warn(); showMsg('ぐらぐら…'); }
+    } else if (e.type === 'beep') {
+      SFX.beep(e.n);
     } else if (e.type === 'save') {
       SFX.save(); showMsg('セーフ！');
     } else if (e.type === 'collapse') {
-      SFX.collapse(); showMsg(e.lead < 0.5 ? 'ぼかーん！' : 'くずれた…');
+      SFX.collapse(); showMsg('ぼかーん！');
     } else if (e.type === 'clear') {
       SFX.clear(); showMsg('かんせい！'); confetti();
       scheduleResult(1.6);
@@ -1105,7 +1128,7 @@ function updateDanger(dt) {
   vigSm += (target - vigSm) * Math.min(1, dt * 6);
   const pulse = reduceMotion ? 1 : 0.8 + 0.2 * Math.sin(hooks.elapsed * (6 + 8 * vigSm));
   $('vig').style.opacity = vigSm < 0.01 ? '0' : (vigSm * pulse).toFixed(3);
-  if (active && G.danger > 0.5) {
+  if (active && G.danger > 0.5 && !(G.overT > 0)) {
     creakT -= dt;
     if (creakT <= 0) { SFX.creak(Math.min(1, G.danger)); creakT = 1.7 - 0.7 * Math.min(1, (G.danger - 0.5) / 0.5); }
   } else creakT = Math.min(creakT, 0.25);
