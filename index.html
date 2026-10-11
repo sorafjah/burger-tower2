@@ -142,7 +142,7 @@ button:focus-visible{outline:3px solid var(--ketchup);outline-offset:2px;}
 </script>
 </head>
 <body>
-<!-- build: 2026-10-11a -->
+<!-- build: 2026-10-11b -->
 <canvas id="cv"></canvas>
 
 <div id="hud">
@@ -283,7 +283,7 @@ const CFG = {
   keySpeed: 4.0,          // 矢印キーを押している間の速さ（パソコン用）
   dragGain: 1.0,          // ゆびの動きと皿の動きの比（1=ゆびと同じだけ動く）
   fov: 42,
-  version: 'v2026-10-11a',
+  version: 'v2026-10-11b',
   modes: {
     easy:    { goal: 6,  fall: 1.3, catchFrac: 0.85, lives: 5, spawnRange: 2.4, jump: 1.6, jumpMin: 0.3, drift: 0,   stiffS: 3.8, kBase: 28, couple: 0.8 },
     normal:  { goal: 10, fall: 1.65, catchFrac: 0.72, lives: 3, spawnRange: 2.6, jump: 2.2, jumpMin: 0.5, drift: 0,   stiffS: 3.5, kBase: 26, couple: 0.5 },
@@ -1144,8 +1144,8 @@ function processEvents() {
     } else if (e.type === 'collapse') {
       SFX.collapse(); showMsg('ぼかーん！');
     } else if (e.type === 'clear') {
-      SFX.clear(); showMsg('かんせい！'); confetti();
-      scheduleResult(1.6);
+      SFX.clear(); showMsg('かんせい！'); confetti(); setTimeout(confetti, 1000);
+      scheduleResult(3.0);
     } else if (e.type === 'over') {
       SFX.over(); scheduleResult(e.reason === 'lives' ? 1.4 : 0.3);
     }
